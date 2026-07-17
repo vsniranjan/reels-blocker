@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static fallback scheme (harbor blue); Android 12+ gets Material You dynamic color. -->
+<resources>
+    <color name="brand_primary">#1F6392</color>
+    <color name="brand_on_primary">#FFFFFF</color>
+    <color name="brand_primary_container">#CDE5FF</color>
+    <color name="brand_on_primary_container">#001D31</color>
+    <color name="ic_launcher_background">#123A57</color>
+</resources>
