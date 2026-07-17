@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Reels Blocker</string>
+    <string name="service_description">Detects the Instagram Reels viewer and navigates back before the video plays. Only watches the Instagram app.</string>
+</resources>

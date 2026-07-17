@@ -1,0 +1,52 @@
+# Reels Blocker
+
+Personal Android app. Blocks Instagram Reels via an AccessibilityService; the rest of Instagram is untouched. Reels shared in DMs still play.
+
+## How it works
+
+An accessibility service watches only `com.instagram.android`. When the fullscreen reels viewer (or a selected Reels tab) is on screen, it covers the reel with a `TYPE_ACCESSIBILITY_OVERLAY` window — unless the viewer was opened from a DM (detected via the reply-to-sender bar), in which case that reel is allowed.
+
+The overlay never auto-navigates: a wrongly shown overlay is a cosmetic glitch, whereas an automatic BACK can exit Instagram entirely (an earlier navigation-based version did exactly that). Escape is always user-initiated: the bottom tab bar stays exposed below the overlay, and an "Exit reels" button clicks the Home tab (or sends BACK in a pushed viewer).
+
+## Build
+
+Requires JDK 21 (Gradle 8.9 / AGP 8.7.3 don't support newer) and an Android SDK with platform 35:
+
+```sh
+JAVA_HOME=/path/to/jdk21 ANDROID_HOME=/path/to/Android/Sdk ./gradlew assembleDebug
+```
+
+APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
+
+## Install (phone: developer mode + USB debugging on)
+
+```sh
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
+
+Then on the phone:
+
+1. Open **Reels Blocker** app once (grants notification permission for the watchdog).
+2. Settings → Accessibility → **Reels Blocker** → enable.
+3. If the toggle is greyed out (Android 13+ sideload restriction):
+   App info for Reels Blocker → **⋮** menu → **Allow restricted settings**, then retry step 2.
+
+## When Instagram updates break detection
+
+Instagram renames internal view IDs a few times a year. The app notifies you if Instagram is in use but no reel surface has been seen for 4 days.
+
+To fix:
+
+1. In the app, enable **Debug: dump Instagram screens**.
+2. Open Instagram, navigate to a reel (toggle "Block reels" off first).
+3. Pull the dump: `adb pull /sdcard/Android/data/dev.niranjan.reelsblocker/files/dumps/`
+4. Find the new viewer/tab/DM view IDs in the dump, update `app/src/main/java/dev/niranjan/reelsblocker/Detection.kt`, rebuild, reinstall.
+
+All detection constants live in `Detection.kt` — nothing else needs touching. Dump mode also prints the firing detection rule on the overlay itself.
+
+## Known limitations
+
+- View IDs in `Detection.kt` were verified on-device in July 2026; they will drift with Instagram updates (see above).
+- DM detection is heuristic: scrolling past a DM-shared reel into the endless feed is blocked by design, but a missed marker may block a legitimate DM reel (reopen usually works).
+- Reels tab content-description fallback assumes English locale.
+- Not affiliated with Instagram/Meta. Reading another app's accessibility tree and overlaying it likely sits outside Instagram's ToS — personal use at your own risk.
