@@ -46,6 +46,11 @@ class MainActivity : AppCompatActivity() {
                 if (section.visibility == View.VISIBLE) View.GONE else View.VISIBLE
         }
 
+        findViewById<Button>(R.id.stats_reset).setOnClickListener {
+            prefs.clearBlockedCounts()
+            refresh()
+        }
+
         findViewById<TextView>(R.id.dump_path).text =
             getString(R.string.dump_hint, "${getExternalFilesDir(null)}/dumps/")
 

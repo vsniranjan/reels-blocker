@@ -20,6 +20,10 @@ class Prefs(context: Context) {
     val blockedTotal: Int
         get() = sp.getInt("blockedTotal", 0)
 
+    fun clearBlockedCounts() {
+        sp.edit().remove("blockedDate").remove("blockedToday").remove("blockedTotal").apply()
+    }
+
     fun recordBlocked() {
         val todayCount = blockedToday + 1
         sp.edit()

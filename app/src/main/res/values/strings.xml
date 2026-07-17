@@ -17,6 +17,7 @@
     <string name="stats_title">Reels dodged</string>
     <string name="stats_today">today</string>
     <string name="stats_total">all time</string>
+    <string name="stats_reset">Reset</string>
 
     <string name="advanced_toggle">Advanced</string>
     <string name="dump_switch">Dump Instagram screens</string>
