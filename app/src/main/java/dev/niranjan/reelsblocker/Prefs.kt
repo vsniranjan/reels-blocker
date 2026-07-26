@@ -4,11 +4,36 @@ import android.content.Context
 
 class Prefs(context: Context) {
 
+    companion object {
+        /** A pause lasts exactly this long — there is no indefinite off. */
+        const val PAUSE_DURATION_MS = 5 * 60 * 1000L
+    }
+
     private val sp = context.getSharedPreferences("reelsblocker", Context.MODE_PRIVATE)
 
-    var blockingEnabled: Boolean
-        get() = sp.getBoolean("blockingEnabled", true)
-        set(value) = sp.edit().putBoolean("blockingEnabled", value).apply()
+    /** Wall-clock instant the current pause ends. 0 (or past) means blocking is on. */
+    var pauseUntil: Long
+        get() = sp.getLong("pauseUntil", 0L)
+        private set(value) = sp.edit().putLong("pauseUntil", value).apply()
+
+    /**
+     * Clamped to the pause length: winding the system clock backwards would
+     * otherwise leave a deadline years out and pause blocking forever.
+     */
+    val pauseRemainingMs: Long
+        get() = (pauseUntil - System.currentTimeMillis()).coerceIn(0L, PAUSE_DURATION_MS)
+
+    /** Read-only by design — nothing can switch blocking off except a timed pause. */
+    val blockingEnabled: Boolean
+        get() = pauseRemainingMs == 0L
+
+    fun pause() {
+        pauseUntil = System.currentTimeMillis() + PAUSE_DURATION_MS
+    }
+
+    fun resume() {
+        pauseUntil = 0L
+    }
 
     var dumpMode: Boolean
         get() = sp.getBoolean("dumpMode", false)

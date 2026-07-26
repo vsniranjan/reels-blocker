@@ -6,6 +6,8 @@ Personal Android app. Blocks Instagram Reels via an AccessibilityService; the re
 
 An accessibility service watches only `com.instagram.android`. When the fullscreen reels viewer (or a selected Reels tab) is on screen, it covers the reel with a `TYPE_ACCESSIBILITY_OVERLAY` window — unless the viewer was opened from a DM (detected via the reply-to-sender bar), in which case that reel is allowed.
 
+Blocking cannot be switched off indefinitely. The "Block reels" switch grants a **5-minute pause** and nothing more: it stores a deadline, and blocking resumes by itself once that instant passes — surviving app restarts, service restarts and reboots, with no alarm or background service involved. Pauses can be taken back-to-back, and flipping the switch back on ends one early.
+
 The overlay never auto-navigates: a wrongly shown overlay is a cosmetic glitch, whereas an automatic BACK can exit Instagram entirely (an earlier navigation-based version did exactly that). Escape is always user-initiated: the bottom tab bar stays exposed below the overlay, and an "Exit reels" button clicks the Home tab (or sends BACK in a pushed viewer).
 
 ## Install
@@ -38,7 +40,7 @@ Instagram renames internal view IDs a few times a year. The app notifies you if 
 To fix:
 
 1. In the app, enable **Debug: dump Instagram screens**.
-2. Open Instagram, navigate to a reel (toggle "Block reels" off first).
+2. Open Instagram, navigate to a reel (toggle "Block reels" off first — that buys 5 minutes).
 3. Pull the dump: `adb pull /sdcard/Android/data/dev.niranjan.reelsblocker/files/dumps/`
 4. Find the new viewer/tab/DM view IDs in the dump, update `app/src/main/java/dev/niranjan/reelsblocker/Detection.kt`, rebuild, reinstall.
 
