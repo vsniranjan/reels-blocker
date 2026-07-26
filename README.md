@@ -8,6 +8,10 @@ An accessibility service watches only `com.instagram.android`. When the fullscre
 
 The overlay never auto-navigates: a wrongly shown overlay is a cosmetic glitch, whereas an automatic BACK can exit Instagram entirely (an earlier navigation-based version did exactly that). Escape is always user-initiated: the bottom tab bar stays exposed below the overlay, and an "Exit reels" button clicks the Home tab (or sends BACK in a pushed viewer).
 
+## Install
+
+Grab `app-release.apk` from the [latest release](https://github.com/vsniranjan/reels-blocker/releases/latest) and sideload it, then follow the phone setup steps below. Or build it yourself:
+
 ## Build
 
 Requires JDK 21 (Gradle 8.9 / AGP 8.7.3 don't support newer) and an Android SDK with platform 35:
@@ -18,13 +22,9 @@ JAVA_HOME=/path/to/jdk21 ANDROID_HOME=/path/to/Android/Sdk ./gradlew assembleDeb
 
 APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 
-## Install (phone: developer mode + USB debugging on)
+## Phone setup
 
-```sh
-adb install app/build/outputs/apk/debug/app-debug.apk
-```
-
-Then on the phone:
+Sideload the APK (or `adb install app/build/outputs/apk/debug/app-debug.apk` with developer mode + USB debugging on), then:
 
 1. Open **Reels Blocker** app once (grants notification permission for the watchdog).
 2. Settings → Accessibility → **Reels Blocker** → enable.
@@ -50,3 +50,7 @@ All detection constants live in `Detection.kt` — nothing else needs touching. 
 - DM detection is heuristic: scrolling past a DM-shared reel into the endless feed is blocked by design, but a missed marker may block a legitimate DM reel (reopen usually works).
 - Reels tab content-description fallback assumes English locale.
 - Not affiliated with Instagram/Meta. Reading another app's accessibility tree and overlaying it likely sits outside Instagram's ToS — personal use at your own risk.
+
+## License
+
+[MIT](LICENSE)
