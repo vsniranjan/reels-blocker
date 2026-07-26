@@ -12,7 +12,12 @@
 
     <string name="block_title">Block reels</string>
     <string name="status_on">Standing guard — reels get a friendly block screen.</string>
-    <string name="status_off">Paused — reels play like normal.</string>
+    <string name="status_off">Paused — %1$s left, then blocking resumes.</string>
+    <string name="pause_hint">Turning this off pauses blocking for 5 minutes only.</string>
+
+    <string name="pause_channel_name">Pause timer</string>
+    <string name="pause_notification_title">Reels Blocker paused</string>
+    <string name="pause_notification_body">Blocking turns itself back on when the timer runs out.</string>
 
     <string name="stats_title">Reels dodged</string>
     <string name="stats_today">today</string>
