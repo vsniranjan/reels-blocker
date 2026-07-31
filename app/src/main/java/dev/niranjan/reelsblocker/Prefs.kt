@@ -4,9 +4,12 @@ import android.content.Context
 
 /**
  * The pause lengths on offer, cheapest first. A pause costs a cooldown of
- * `cooldownFactor` times its length, during which every option but the free
- * five-minute one is locked — that is what stops a long pause from simply
- * being taken again the moment it ends.
+ * `cooldownFactor` times its length, during which pausing is closed off
+ * entirely — that is what stops a long pause from simply being taken again the
+ * moment it ends, five minutes at a time.
+ *
+ * Only the five-minute option is free, and free means it charges no cooldown of
+ * its own. It does not mean it stays reachable inside one somebody else bought.
  */
 enum class PauseOption(val lengthMs: Long, val cooldownFactor: Int) {
     FIVE_MIN(5 * 60_000L, 0),
@@ -81,14 +84,16 @@ class Prefs(context: Context) {
     val cooldownRemainingMs: Long
         get() = (cooldownUntil - System.currentTimeMillis()).coerceIn(0L, MAX_COOLDOWN_MS)
 
-    /** The free option stays available always; everything else waits out the cooldown. */
-    fun isLocked(option: PauseOption): Boolean =
-        option.cooldownFactor > 0 && cooldownRemainingMs > 0
+    /** A running cooldown closes every option, the free one included. */
+    val pausesLocked: Boolean
+        get() = cooldownRemainingMs > 0
 
     /**
      * What was already owed when the running pause started. Held separately so
      * resume() can discount this pause's own charge without wiping a longer
-     * lockout that the free five-minute option happened to be taken during.
+     * lockout that was already running underneath it. The picker no longer hands
+     * out a pause during a lockout, but a deadline that outlives the pause it was
+     * charged for must survive being resumed early regardless of how it got there.
      */
     private val cooldownBase: Long
         get() = sp.getLong("cooldownBase", 0L)
