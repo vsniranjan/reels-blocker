@@ -67,4 +67,15 @@ object Detection {
     val FEED_VIEWER_MARKER_IDS = listOf(
         "$INSTAGRAM_PACKAGE:id/action_bar_tab_layout",
     )
+
+    /**
+     * Author label of the reel on screen — the handle under the video. Off-screen
+     * neighbours in the pager carry the same id but report vis=false, so a
+     * visibility-filtered lookup names the reel currently being watched. That is
+     * what tells a feed grant its reel has been swiped away. Verified on-device
+     * 2026-08-01.
+     */
+    val REEL_AUTHOR_IDS = listOf(
+        "$INSTAGRAM_PACKAGE:id/clips_author_username",
+    )
 }

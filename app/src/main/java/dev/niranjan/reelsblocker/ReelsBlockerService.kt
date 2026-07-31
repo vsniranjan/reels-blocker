@@ -33,7 +33,6 @@ class ReelsBlockerService : AccessibilityService() {
         private const val DUMP_THROTTLE_MS = 2000L
         private const val BLOCK_COUNT_GAP_MS = 10_000L
         private const val BFS_NODE_CAP = 600
-        private const val PAGER_ANCESTOR_CAP = 6
         private const val TAG = "ReelsBlocker"
         private const val REEL_SIGNAL_WRITE_THROTTLE_MS = 60_000L
         private const val BROKEN_AFTER_MS = 4 * 24 * 60 * 60 * 1000L   // 4 days without any reel signal
@@ -51,15 +50,18 @@ class ReelsBlockerService : AccessibilityService() {
     private var overlayShown = false
 
     /**
-     * Set when the user swipes off the reel they opened from the feed, cleared when
-     * they leave the viewer entirely. A feed-opened reel is allowed once per open:
-     * without this the check below would simply re-allow the next reel, and one tap
-     * would buy an endless scroll.
+     * Author of the reel a feed grant was issued for, null when no grant is live.
+     * The grant covers that one reel: when a different author is on screen the user
+     * has swiped on into the endless feed, and [feedGrantSpent] latches.
+     *
+     * Scroll events looked like the obvious signal here and are not: opening a reel
+     * from partway down the feed makes the pager settle onto it and report scrolls,
+     * while a quick flick to the next reel reports only the index it lands on — so
+     * neither "any pager scroll" nor "the index changed" can tell arriving from
+     * leaving. What is on screen can.
      */
-    private var feedSwipedAway = false
-
-    /** Reel the pager is parked on, -1 before the first scroll of a viewer session. */
-    private var pagerIndex = -1
+    private var grantedAuthor: String? = null
+    private var feedGrantSpent = false
 
     private val windowManager: WindowManager
         get() = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -113,20 +115,6 @@ class ReelsBlockerService : AccessibilityService() {
             return
         }
 
-        // Scrolls are frequent — feed, comments, explore all fire them. Decide from
-        // the event alone and get out, before paying for a tree walk; only a swipe
-        // on the reel pager changes anything, and that one falls through so the
-        // overlay lands on the next reel immediately.
-        if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
-            if (!isReelPagerScroll(event)) return
-            // Opening a reel from partway down the feed settles the pager onto it,
-            // which reports scrolls without ever leaving the page. Landing is not
-            // swiping: only a move to a different reel spends the grant.
-            val index = event.toIndex
-            if (pagerIndex != -1 && index != pagerIndex) feedSwipedAway = true
-            pagerIndex = index
-        }
-
         val root = rootInActiveWindow
         if (root == null || root.packageName?.toString() != Detection.INSTAGRAM_PACKAGE) {
             hideOverlay()
@@ -156,8 +144,8 @@ class ReelsBlockerService : AccessibilityService() {
         // Leaving the viewer ends the session, so the next reel opened from the feed
         // is a fresh grant. Reopening is the price of a second reel.
         if (!inViewer) {
-            feedSwipedAway = false
-            pagerIndex = -1
+            grantedAuthor = null
+            feedGrantSpent = false
         }
 
         val pushedViewer = inViewer && !reelsTabSelected
@@ -170,14 +158,15 @@ class ReelsBlockerService : AccessibilityService() {
         // the same boundary the DM reply bar draws for a shared reel.
         val feedMarker = pushedViewer &&
             findAnyById(root, Detection.FEED_VIEWER_MARKER_IDS) != null
-        val feedViewer = feedMarker && !feedSwipedAway
+        if (feedMarker) trackFeedGrant(root)
+        val feedViewer = feedMarker && !feedGrantSpent
 
         if (reelSurface && prefs.blockingEnabled && !dmViewer && !feedViewer) {
             // Blocking a viewer that still carries the feed marker can only mean the
-            // grant was swiped away — every other pushed viewer reports its own id.
+            // grant was spent — every other pushed viewer reports its own id.
             val trigger = when {
                 !inViewer -> "reels_tab_selected"
-                feedMarker -> "feed_grant_revoked"
+                feedMarker -> "feed_grant_spent"
                 else -> viewer?.viewIdResourceName
             }
             showOverlay(root, trigger)
@@ -187,26 +176,22 @@ class ReelsBlockerService : AccessibilityService() {
     }
 
     /**
-     * True when [event] is a scroll of the reel pager — i.e. a swipe between reels
-     * rather than the feed, a comment sheet or the explore grid. On the build tested
-     * (2026-07-31) the pager reports scrolls under its own id; the walk up the
-     * ancestors is there for the day it reports them from an inner view instead.
+     * Anchors a feed grant to the reel on screen, and spends it once a different
+     * reel takes its place. A blank author means the next reel has not drawn itself
+     * yet — that is a gap in the evidence, not a swipe, so the grant survives it.
      */
-    private fun isReelPagerScroll(event: AccessibilityEvent): Boolean {
-        val source = event.source ?: return false
-        if (prefs.dumpMode) Log.d(
-            TAG,
-            "scroll src=${source.viewIdResourceName} from=${event.fromIndex} to=${event.toIndex}" +
-                " items=${event.itemCount} dy=${event.scrollDeltaY} y=${event.scrollY}"
-        )
-        var node: AccessibilityNodeInfo? = source
-        var depth = 0
-        while (node != null && depth < PAGER_ANCESTOR_CAP) {
-            if (node.viewIdResourceName in Detection.VIEWER_IDS) return true
-            node = node.parent
-            depth++
+    private fun trackFeedGrant(root: AccessibilityNodeInfo) {
+        val author = findAnyById(root, Detection.REEL_AUTHOR_IDS)
+            ?.text?.toString()?.takeIf { it.isNotBlank() }
+            ?: return
+        val granted = grantedAuthor
+        if (granted == null) {
+            grantedAuthor = author
+            if (prefs.dumpMode) Log.d(TAG, "feed grant anchored to $author")
+        } else if (author != granted && !feedGrantSpent) {
+            feedGrantSpent = true
+            if (prefs.dumpMode) Log.d(TAG, "feed grant spent: $granted -> $author")
         }
-        return false
     }
 
     /** Visible to the user and covering at least ~60% of screen height and width. */
