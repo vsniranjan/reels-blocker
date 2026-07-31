@@ -1,91 +1,82 @@
+<div align="center">
+
+<img src="docs/images/logo.png" alt="Reels Blocker" width="120">
+
 # Reels Blocker
 
-Personal Android app. Blocks Instagram Reels via an AccessibilityService; the rest of Instagram is untouched. Reels shared in DMs still play, and a reel tapped in the home feed plays until you swipe off it.
+**Blocks Instagram Reels. Leaves the rest of Instagram alone.**
 
-## How it works
+An Android app for people who open Instagram to check one thing and resurface forty minutes later.
 
-An accessibility service watches only `com.instagram.android`. When the fullscreen reels viewer (or a selected Reels tab) is on screen, it covers the reel with a `TYPE_ACCESSIBILITY_OVERLAY` window — unless that one reel is allowed:
+</div>
 
-- **Opened from a DM**, detected via the reply-to-sender bar.
-- **Opened from the home feed**, detected via the Reels/Friends tab strip in the viewer's action bar, which a viewer pushed from explore does not show (it shows a plain "Explore" title instead).
+<div align="center">
+  <img src="docs/images/home.png" alt="Home screen showing blocking is on and how many reels were dodged" width="30%">
+  <img src="docs/images/blocked.png" alt="The block screen covering a reel" width="30%">
+  <img src="docs/images/pause.png" alt="The pause picker, showing what each pause length costs" width="30%">
+</div>
 
-Both allowances cover the reel you opened and nothing more. The DM one ends by itself — the reply bar belongs to the shared reel — and the feed one is ended explicitly: the grant is anchored to the author shown under the video, and once a different reel is on screen it is spent and the overlay comes back. Leaving the viewer resets it, so the next reel you tap in the feed is allowed again. Nothing is persisted; a service restart just means the next reel is blocked until you reopen it.
+## What it does
 
-Scroll events are deliberately *not* what ends the grant, though they look like the obvious signal. Opening a reel from partway down the feed makes the pager settle onto it and report scrolls, while a quick flick to the next reel reports only the index it lands on — so neither "any pager scroll" nor "the page index changed" can tell arriving from leaving. Which reel is on screen can.
+Open Instagram and everything works: posts, stories, DMs, search, your profile. Tap the Reels tab, or a reel from Explore, and a screen covers it instead. There's one button on that screen, Back to feed, and it puts you back where you were.
 
-Day to day there is no off switch — only **Pause blocking**, which opens a picker of timed pauses: 5 minutes, 15 minutes, 30 minutes or 1 day. Every option but the 5-minute one charges a **cooldown** once it ends, during which the paid options are locked:
+Nothing to configure, no daily timer to set. It's on until you turn it off.
 
-| Pause | Cooldown after |
-|-------|----------------|
-| 5 min | none — always available |
-| 15 min | 15 min |
-| 30 min | 30 min |
-| 1 day | 2 days |
+The home screen counts the reels you didn't end up watching, today and all time.
 
-Ending a pause early is cheaper: the cooldown is charged on the time actually paused, so resuming a day-long pause after 3 hours costs 6 hours, not 2 days. Resuming works from the app or from the notification's **Resume blocking now** action.
+## What still plays
 
-Mechanically it is still two stored deadlines and nothing else — no alarms, no background service. Both are recomputed from the clock on every read, so a pause and a cooldown survive app restarts, service restarts and reboots for free, and expire on their own with nothing running.
+Blocking the wrong thing is worse than blocking nothing, so two reels get through.
 
-### The escape hatch
+A reel someone sends you in a DM plays, because a person chose that one for you. So does a reel you tap in your own feed, since you scrolled past it and decided you wanted it.
 
-Blocking *can* be switched off for good — an app you can't quit is a hostage situation, not a helper. It is just deliberately awkward to reach, and the only hint that it exists is two lines at the bottom of the Advanced sheet.
+You get that reel and no more. Swipe up to the next one and the block screen is back, because that swipe is where watching a reel turns into losing an hour. If you want another, back out and tap it. Mildly annoying on purpose.
 
-Tap the state badge **7 times**. Every tap bleeds the shield from green toward red and cracks it a little further; stop for two seconds and it heals. On the seventh tap you get five dialogs in a row, one of which makes you type
+## Taking a break
 
-> i know i am making a bad decision but i am doing it anyway
+Day to day there's no off switch, only Pause blocking, which asks how long:
 
-(case-insensitive — an autocapitalising keyboard is fine). Turning blocking back on is a single tap with no ceremony at all: friction to leave, none to return. While it is off the shield goes grey and the home screen counts how long you have been unprotected.
+| Pause | What it costs |
+|---|---|
+| 5 minutes | Free, always available |
+| 15 minutes | 15 min lock afterwards |
+| 30 minutes | 30 min lock afterwards |
+| 1 day | 2 day lock afterwards |
 
-Switching off and straight back on does **not** clear an active cooldown — that deadline is absolute and will still be waiting.
+The lock is what stops a long pause being taken again the second it ends. While it runs, the paid options are greyed out and only the free five minutes is left, so you can always take a quick look.
 
-The overlay never auto-navigates: a wrongly shown overlay is a cosmetic glitch, whereas an automatic BACK can exit Instagram entirely (an earlier navigation-based version did exactly that). Escape is always user-initiated: the bottom tab bar stays exposed below the overlay, and an "Exit reels" button clicks the Home tab (or sends BACK in a pushed viewer).
+Change your mind and you can resume early, from the app or from the notification, and you're only charged for the time you actually used. Drop a day-long pause after 3 hours and it costs 6 hours instead of 2 days.
+
+Pauses survive restarts and reboots, and they end on their own.
+
+## Turning it off for good
+
+You can. An app you can't quit isn't a helper.
+
+Getting there is deliberately awkward. Seven taps on the shield, which cracks a little more each time, then five confirmations, one of which makes you type out a sentence about what you're doing. Turning it back on takes a single tap and asks you nothing.
 
 ## Install
 
-Grab `app-release.apk` from the [latest release](https://github.com/vsniranjan/reels-blocker/releases/latest) and sideload it, then follow the phone setup steps below. Or build it yourself:
+Grab `app-release.apk` from the [latest release](https://github.com/vsniranjan/reels-blocker/releases/latest) and sideload it. Then on the phone:
 
-## Build
+1. Open Reels Blocker once, so it can notify you if blocking ever stops working.
+2. Settings → Accessibility → Reels Blocker → enable.
+3. If that toggle is greyed out, it's Android being wary of sideloaded apps. Go to App info for Reels Blocker → ⋮ → Allow restricted settings, then try step 2 again.
 
-Requires JDK 21 (Gradle 8.9 / AGP 8.7.3 don't support newer) and an Android SDK with platform 35:
+That's it. Open Instagram and try a reel.
 
-```sh
-JAVA_HOME=/path/to/jdk21 ANDROID_HOME=/path/to/Android/Sdk ./gradlew assembleDebug
-```
+## If reels stop being blocked
 
-APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
+Instagram renames things inside its own app a few times a year, which is enough to break detection. The app watches for that and notifies you if it hasn't seen a reel in four days.
 
-## Phone setup
+Fixing it means a computer and a rebuild. The [technical notes](docs/technical.md) have the steps.
 
-Sideload the APK (or `adb install app/build/outputs/apk/debug/app-debug.apk` with developer mode + USB debugging on), then:
+## Good to know
 
-1. Open **Reels Blocker** app once (grants notification permission for the watchdog).
-2. Settings → Accessibility → **Reels Blocker** → enable.
-3. If the toggle is greyed out (Android 13+ sideload restriction):
-   App info for Reels Blocker → **⋮** menu → **Allow restricted settings**, then retry step 2.
+It only ever looks at Instagram. The one permission it asks for is the one that lets it send you notifications, and there's no internet permission in the manifest at all, so nothing it sees can leave your phone.
 
-## When Instagram updates break detection
+Not affiliated with Instagram or Meta. Personal project, use at your own risk.
 
-Instagram renames internal view IDs a few times a year. The app notifies you if Instagram is in use but no reel surface has been seen for 4 days.
+---
 
-To fix:
-
-1. In the app, enable **Debug: dump Instagram screens**.
-2. Open Instagram, navigate to a reel (tap **Pause blocking** first and take the free 5-minute pause).
-3. Pull the dump: `adb pull /sdcard/Android/data/dev.niranjan.reelsblocker/files/dumps/`
-4. Find the new viewer/tab/DM view IDs in the dump, update `app/src/main/java/dev/niranjan/reelsblocker/Detection.kt`, rebuild, reinstall.
-
-All detection constants live in `Detection.kt` — nothing else needs touching. Dump mode also prints the firing detection rule on the overlay itself.
-
-## Known limitations
-
-- View IDs in `Detection.kt` were verified on-device in July 2026; they will drift with Instagram updates (see above).
-- DM and feed detection are heuristic: scrolling past an allowed reel into the endless feed is blocked by design, but a missed marker may block a legitimate DM or feed reel (reopen usually works).
-- Sponsored reels in the feed open a viewer without the Reels/Friends tab strip, so they are blocked like any other reel.
-- The feed grant is anchored to the author handle, so swiping from one reel to the next reel *by the same account* is not noticed and plays. Rare in practice, and it costs a swipe either way.
-- Nothing caps how often the feed allowance can be spent — back out, tap the next reel, repeat. The friction of doing that is the only limit, same bet the DM path makes.
-- Reels tab content-description fallback assumes English locale.
-- Not affiliated with Instagram/Meta. Reading another app's accessibility tree and overlaying it likely sits outside Instagram's ToS — personal use at your own risk.
-
-## License
-
-[MIT](LICENSE)
+Build instructions and how the detection actually works: [technical notes](docs/technical.md). Licensed [MIT](LICENSE).
