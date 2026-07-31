@@ -68,25 +68,7 @@ class MainActivity : AppCompatActivity() {
 
         PauseNotification.ensureChannel(this)
 
-        findViewById<MaterialSwitch>(R.id.dump_switch).apply {
-            isChecked = prefs.dumpMode
-            setOnCheckedChangeListener { _, checked -> prefs.dumpMode = checked }
-        }
-
-        findViewById<View>(R.id.advanced_toggle).setOnClickListener {
-            val section = findViewById<View>(R.id.advanced_section)
-            val opening = section.visibility != View.VISIBLE
-            section.visibility = if (opening) View.VISIBLE else View.GONE
-            findViewById<ImageView>(R.id.advanced_chevron)
-                .animate().rotation(if (opening) 180f else 0f).setDuration(180L).start()
-        }
-
-        findViewById<MaterialButton>(R.id.stats_reset).setOnClickListener {
-            prefs.clearBlockedCounts()
-            refresh()
-        }
-
-        findViewById<TextView>(R.id.dump_path).text = "${getExternalFilesDir(null)}/dumps/"
+        findViewById<View>(R.id.overflow).setOnClickListener { showAdvancedSheet() }
 
         if (Build.VERSION.SDK_INT >= 33 &&
             checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -180,9 +162,7 @@ class MainActivity : AppCompatActivity() {
         // Nothing to count and nothing to configure before the service is running.
         val setUp = state != UiState.NOT_SET_UP
         findViewById<MaterialCardView>(R.id.stats_card).visibility = visibleIf(setUp)
-        findViewById<View>(R.id.advanced_toggle).visibility = visibleIf(setUp)
-        findViewById<View>(R.id.advanced_section).visibility =
-            if (setUp) findViewById<View>(R.id.advanced_section).visibility else View.GONE
+        findViewById<View>(R.id.overflow).visibility = visibleIf(setUp)
         findViewById<View>(R.id.setup_hint).visibility = visibleIf(!setUp)
 
         findViewById<TextView>(R.id.stat_today).text = prefs.blockedToday.toString()
@@ -284,6 +264,30 @@ class MainActivity : AppCompatActivity() {
         // Must follow setOnClickListener: that call force-sets clickable even when
         // handed null, which would leave a locked row rippling under the finger.
         row.isClickable = !locked
+    }
+
+    /**
+     * Debug tools, one tap off the main screen. A sheet rather than a popup menu
+     * because the dump path has to be readable and copyable, which a menu row
+     * cannot carry.
+     */
+    private fun showAdvancedSheet() {
+        val sheet = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.sheet_advanced, null)
+
+        view.findViewById<MaterialSwitch>(R.id.dump_switch).apply {
+            isChecked = prefs.dumpMode
+            setOnCheckedChangeListener { _, checked -> prefs.dumpMode = checked }
+        }
+        view.findViewById<TextView>(R.id.dump_path).text = "${getExternalFilesDir(null)}/dumps/"
+        view.findViewById<MaterialButton>(R.id.stats_reset).setOnClickListener {
+            prefs.clearBlockedCounts()
+            sheet.dismiss()
+        }
+
+        sheet.setOnDismissListener { refresh() }
+        sheet.setContentView(view)
+        sheet.show()
     }
 
     private fun labelOf(option: PauseOption) = when (option) {
