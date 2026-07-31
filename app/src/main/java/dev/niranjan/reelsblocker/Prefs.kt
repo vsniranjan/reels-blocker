@@ -43,9 +43,36 @@ class Prefs(context: Context) {
     val pauseRemainingMs: Long
         get() = (pauseUntil - System.currentTimeMillis()).coerceIn(0L, pauseOption.lengthMs)
 
-    /** Read-only by design — nothing can switch blocking off except a timed pause. */
+    /**
+     * Instant blocking was switched off for good, 0 while it is on. Reaching this
+     * costs the user a five-stage walk of shame; coming back is one tap.
+     */
+    private val disabledAt: Long
+        get() = sp.getLong("disabledAt", 0L)
+
+    /** How long they have been unprotected. 0 while blocking is on. */
+    val offForMs: Long
+        get() = if (disabledAt == 0L) 0L else (System.currentTimeMillis() - disabledAt).coerceAtLeast(0L)
+
+    val disabled: Boolean
+        get() = disabledAt != 0L
+
+    /** The single gate the accessibility service reads on every event. */
     val blockingEnabled: Boolean
-        get() = pauseRemainingMs == 0L
+        get() = !disabled && pauseRemainingMs == 0L
+
+    /**
+     * Neither of these touches cooldownUntil. Switching off and straight back on
+     * must not launder an active lockout — the deadline is absolute, so it is
+     * still waiting when they return.
+     */
+    fun disable() {
+        sp.edit().putLong("disabledAt", System.currentTimeMillis()).putLong("pauseUntil", 0L).apply()
+    }
+
+    fun enable() {
+        sp.edit().putLong("disabledAt", 0L).apply()
+    }
 
     /** Instant the paid-for options unlock again. Same clamp reasoning as the pause. */
     private val cooldownUntil: Long

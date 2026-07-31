@@ -1,18 +1,24 @@
 package dev.niranjan.reelsblocker
 
+import android.animation.ArgbEvaluator
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -20,10 +26,28 @@ import com.google.android.material.materialswitch.MaterialSwitch
 
 class MainActivity : AppCompatActivity() {
 
-    /** What the whole screen is showing. One of four, never a combination. */
-    private enum class UiState { NOT_SET_UP, PROTECTED, LOCKED, PAUSED }
+    /** What the whole screen is showing. One of five, never a combination. */
+    private enum class UiState { NOT_SET_UP, OFF, PROTECTED, LOCKED, PAUSED }
+
+    companion object {
+        /** Taps on the badge that reveal the escape hatch. */
+        private const val TAPS_TO_REVEAL = 7
+
+        /** A slower run than this is someone poking the screen, not a gesture. */
+        private const val TAP_GAP_MS = 2000L
+    }
 
     private lateinit var prefs: Prefs
+
+    private var tapCount = 0
+    private var lastTapAt = 0L
+
+    /**
+     * Puts the shield back together when a tap streak is abandoned. Without this
+     * the damage would sit there until something else repainted the badge — in
+     * the Protected state nothing does, so a half-broken shield would just stay.
+     */
+    private val tapReset = Runnable { resetTaps() }
 
     /** Drives the fade-through: only a real state change animates, not every tick. */
     private var shownState: UiState? = null
@@ -32,8 +56,9 @@ class MainActivity : AppCompatActivity() {
     private val tick = object : Runnable {
         override fun run() {
             refresh()
-            // Keeps running through a cooldown too — that countdown is on screen as well.
-            if (prefs.pauseRemainingMs > 0 || prefs.cooldownRemainingMs > 0) {
+            // Keeps running through a cooldown and through the off tally too —
+            // those countdowns are on screen as well.
+            if (prefs.pauseRemainingMs > 0 || prefs.cooldownRemainingMs > 0 || prefs.disabled) {
                 ticker.postDelayed(this, 1000L)
             }
         }
@@ -49,6 +74,11 @@ class MainActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.primary_button).setOnClickListener {
             when (currentState()) {
                 UiState.NOT_SET_UP -> startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                // Friction to leave, none to come back.
+                UiState.OFF -> {
+                    prefs.enable()
+                    restartTicker()
+                }
                 UiState.PAUSED -> {
                     prefs.resume()
                     PauseNotification.cancel(this)
@@ -57,6 +87,8 @@ class MainActivity : AppCompatActivity() {
                 else -> showPauseSheet()
             }
         }
+
+        findViewById<View>(R.id.state_icon_bg).setOnClickListener { onBadgeTapped() }
 
         findViewById<TextView>(R.id.setup_hint).setOnClickListener {
             MaterialAlertDialogBuilder(this)
@@ -84,6 +116,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         ticker.removeCallbacks(tick)
+        resetTaps()
         super.onPause()
     }
 
@@ -94,6 +127,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun currentState(): UiState = when {
         ReelsBlockerService.instance == null -> UiState.NOT_SET_UP
+        prefs.disabled -> UiState.OFF
         prefs.pauseRemainingMs > 0 -> UiState.PAUSED
         prefs.cooldownRemainingMs > 0 -> UiState.LOCKED
         else -> UiState.PROTECTED
@@ -111,34 +145,42 @@ class MainActivity : AppCompatActivity() {
         val pill = findViewById<View>(R.id.cooldown_pill)
         val button = findViewById<MaterialButton>(R.id.primary_button)
 
-        // Green guarding, red exposed, grey never started. The badge answers "am I
-        // protected", so it uses semantic colour rather than the brand orange.
+        // Green guarding, red exposed, grey off or never started. The badge answers
+        // "am I protected", so it uses semantic colour rather than the brand orange.
+        // Switched off is deliberately drab rather than alarming — it was a choice.
         iconBg.backgroundTintList = colorStateList(
             when (state) {
                 UiState.PROTECTED, UiState.LOCKED -> R.color.state_ok_container
                 UiState.PAUSED -> R.color.state_off_container
-                UiState.NOT_SET_UP -> R.color.brand_muted_container
+                UiState.OFF, UiState.NOT_SET_UP -> R.color.brand_muted_container
             }
         )
         icon.imageTintList = colorStateList(
             when (state) {
                 UiState.PROTECTED, UiState.LOCKED -> R.color.state_ok
                 UiState.PAUSED -> R.color.state_off
-                UiState.NOT_SET_UP -> R.color.brand_on_muted_container
+                UiState.OFF, UiState.NOT_SET_UP -> R.color.brand_on_muted_container
             }
         )
 
         // A struck-through shield, not a pause glyph: a lone pause symbol in a
         // filled circle reads as a button and invites a tap that does nothing.
-        icon.setImageResource(
-            if (state == UiState.PAUSED) R.drawable.ic_shield_off else R.drawable.ic_shield
-        )
+        val guardDown = state == UiState.PAUSED || state == UiState.OFF
+        icon.setImageResource(if (guardDown) R.drawable.ic_shield_off else R.drawable.ic_shield)
+        // Never leave a half-cracked shield behind after the state moves on.
+        findViewById<ImageView>(R.id.state_cracks).visibility = View.GONE
+
         label.text = when (state) {
             UiState.PAUSED -> formatDuration(remaining)
             UiState.NOT_SET_UP -> getString(R.string.state_not_on)
+            UiState.OFF -> getString(R.string.state_off)
             else -> getString(R.string.state_protected)
         }
-        sub.visibility = if (state == UiState.PAUSED) View.VISIBLE else View.GONE
+        findViewById<TextView>(R.id.state_sub).text = when (state) {
+            UiState.OFF -> getString(R.string.state_off_for, formatDuration(prefs.offForMs))
+            else -> getString(R.string.state_left)
+        }
+        sub.visibility = if (guardDown) View.VISIBLE else View.GONE
 
         pill.visibility = if (state == UiState.LOCKED) View.VISIBLE else View.GONE
         if (state == UiState.LOCKED) {
@@ -149,19 +191,22 @@ class MainActivity : AppCompatActivity() {
         button.setText(
             when (state) {
                 UiState.NOT_SET_UP -> R.string.action_turn_on
+                UiState.OFF -> R.string.action_turn_back_on
                 UiState.PAUSED -> R.string.action_resume
                 else -> R.string.action_pause
             }
         )
         button.icon = when (state) {
-            UiState.NOT_SET_UP -> null
+            UiState.NOT_SET_UP, UiState.OFF -> null
             UiState.PAUSED -> getDrawable(R.drawable.ic_play)
             else -> getDrawable(R.drawable.ic_pause)
         }
 
-        // Nothing to count and nothing to configure before the service is running.
+        // Nothing to count and nothing to configure before the service is running,
+        // and nothing being blocked to count while it is switched off.
         val setUp = state != UiState.NOT_SET_UP
-        findViewById<MaterialCardView>(R.id.stats_card).visibility = visibleIf(setUp)
+        findViewById<MaterialCardView>(R.id.stats_card).visibility =
+            visibleIf(setUp && state != UiState.OFF)
         findViewById<View>(R.id.overflow).visibility = visibleIf(setUp)
         findViewById<View>(R.id.setup_hint).visibility = visibleIf(!setUp)
 
@@ -170,6 +215,11 @@ class MainActivity : AppCompatActivity() {
 
         if (shownState != null && shownState != state) fadeThrough(findViewById(R.id.hero), button)
         shownState = state
+
+        // A cooldown keeps the ticker running, and refresh() has just repainted the
+        // badge — without this, every tick would wipe the damage out from under a
+        // tap streak in progress.
+        if (tapCount > 0) paintDamage(tapCount)
     }
 
     /**
@@ -264,6 +314,175 @@ class MainActivity : AppCompatActivity() {
         // Must follow setOnClickListener: that call force-sets clickable even when
         // handed null, which would leave a locked row rippling under the finger.
         row.isClickable = !locked
+    }
+
+    // ---------------------------------------------------------------------------
+    // The escape hatch. Blocking can be switched off for good — it just costs the
+    // user their dignity to get there. Every stage is cancellable; only the last
+    // one writes anything.
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Seven taps on the badge. Each one answers immediately — the shield bleeds
+     * from green toward red and gains another crack — so nobody is left wondering
+     * whether the gesture is working.
+     */
+    private fun onBadgeTapped() {
+        // Only an armed shield can be broken; off or not-yet-set-up have no hatch.
+        if (currentState() != UiState.PROTECTED && currentState() != UiState.LOCKED) return
+
+        val now = System.currentTimeMillis()
+        if (now - lastTapAt > TAP_GAP_MS) tapCount = 0
+        lastTapAt = now
+        tapCount++
+
+        if (tapCount >= TAPS_TO_REVEAL) {
+            resetTaps()
+            stageOne()
+            return
+        }
+
+        paintDamage(tapCount)
+        ticker.removeCallbacks(tapReset)
+        ticker.postDelayed(tapReset, TAP_GAP_MS)
+        val left = TAPS_TO_REVEAL - tapCount
+        if (left <= 3) {
+            Snackbar.make(
+                findViewById(R.id.hero),
+                getString(R.string.off_taps_remaining, left),
+                Snackbar.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    /** Bleeds the badge toward red and stacks on another fracture. */
+    private fun paintDamage(taps: Int) {
+        val progress = taps.toFloat() / TAPS_TO_REVEAL
+        val evaluator = ArgbEvaluator()
+        val icon = evaluator.evaluate(
+            progress, getColor(R.color.state_ok), getColor(R.color.state_off)
+        ) as Int
+        val container = evaluator.evaluate(
+            progress, getColor(R.color.state_ok_container), getColor(R.color.state_off_container)
+        ) as Int
+
+        findViewById<ImageView>(R.id.state_icon).imageTintList = ColorStateList.valueOf(icon)
+        findViewById<View>(R.id.state_icon_bg).backgroundTintList = ColorStateList.valueOf(container)
+
+        val cracks = findViewById<ImageView>(R.id.state_cracks)
+        if (taps >= 2) {
+            cracks.setImageResource(crackFor(taps))
+            cracks.imageTintList = ColorStateList.valueOf(icon)
+            cracks.visibility = View.VISIBLE
+        } else {
+            cracks.visibility = View.GONE
+        }
+    }
+
+    private fun crackFor(taps: Int) = when (taps) {
+        2 -> R.drawable.ic_shield_crack_1
+        3 -> R.drawable.ic_shield_crack_2
+        4 -> R.drawable.ic_shield_crack_3
+        5 -> R.drawable.ic_shield_crack_4
+        6 -> R.drawable.ic_shield_crack_5
+        else -> R.drawable.ic_shield_crack_6
+    }
+
+    /** Puts the shield back together. */
+    private fun resetTaps() {
+        ticker.removeCallbacks(tapReset)
+        tapCount = 0
+        lastTapAt = 0L
+        if (::prefs.isInitialized) refresh()
+    }
+
+    private fun stageOne() = guiltDialog(
+        title = R.string.off_1_title,
+        body = getString(R.string.off_1_body),
+        continueLabel = R.string.off_1_continue,
+        step = 1,
+    ) { stageTwo() }
+
+    private fun stageTwo() = guiltDialog(
+        title = R.string.off_2_title,
+        body = getString(R.string.off_2_body, prefs.blockedTotal),
+        continueLabel = R.string.off_2_continue,
+        step = 2,
+    ) { stageThree() }
+
+    private fun stageThree() = guiltDialog(
+        title = R.string.off_3_title,
+        body = getString(R.string.off_3_body),
+        continueLabel = R.string.off_3_continue,
+        step = 3,
+    ) { stageFour() }
+
+    /**
+     * Stage four: type the phrase. Case-insensitive and trimmed, so a keyboard
+     * that autocapitalises "i" still passes — the point is the typing, not a
+     * spelling test.
+     */
+    private fun stageFour() {
+        val view = layoutInflater.inflate(R.layout.dialog_type_confirm, null)
+        val input = view.findViewById<EditText>(R.id.phrase_input)
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.off_4_title)
+            .setView(view)
+            .setPositiveButton(R.string.off_keep, null)
+            .setNegativeButton(R.string.off_4_continue) { _, _ -> stageFive() }
+            .show()
+
+        val continueButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
+        continueButton.isEnabled = false
+        styleStage(dialog, step = 4)
+
+        val target = getString(R.string.off_phrase)
+        input.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                continueButton.isEnabled = s?.toString()?.trim().equals(target, ignoreCase = true)
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+        })
+    }
+
+    private fun stageFive() = guiltDialog(
+        title = R.string.off_5_title,
+        body = getString(R.string.off_5_body),
+        continueLabel = R.string.off_5_continue,
+        step = 5,
+    ) {
+        prefs.disable()
+        PauseNotification.cancel(this)
+        restartTicker()
+    }
+
+    /**
+     * One rung of the ladder. "Keep blocking" is the positive button so it takes
+     * the emphasised slot; carrying on is the negative one, and it shrinks and
+     * fades with every step down.
+     */
+    private fun guiltDialog(title: Int, body: String, continueLabel: Int, step: Int, onContinue: () -> Unit) {
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(title)
+            .setMessage(body)
+            .setPositiveButton(R.string.off_keep, null)
+            .setNegativeButton(continueLabel) { _, _ -> onContinue() }
+            .show()
+        styleStage(dialog, step)
+    }
+
+    /** The way out gets quieter the further in you go. */
+    private fun styleStage(dialog: androidx.appcompat.app.AlertDialog, step: Int) {
+        dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)?.apply {
+            // Floors on both: quieter each step, but never so small or so faint
+            // that the way out stops being usable.
+            textSize = (14f - step).coerceAtLeast(11f)
+            alpha = (1f - step * 0.1f).coerceAtLeast(0.6f)
+            setTextColor(getColor(R.color.brand_on_surface_variant))
+        }
     }
 
     /**

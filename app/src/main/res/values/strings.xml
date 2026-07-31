@@ -48,4 +48,42 @@
 
     <string name="advanced_title">Advanced</string>
     <string name="dump_switch">Dump Instagram screens</string>
+
+    <!--
+      The escape hatch. Reached by tapping the state badge seven times; the cue
+      below is the only acknowledgement anywhere that it exists.
+
+      Tone: self-directed. It never mocks reels, the people who make them, or any
+      kind of content — the only person on the hook is the one doing the tapping.
+    -->
+    <string name="off_cue_line1">No off switch here.</string>
+    <string name="off_cue_line2">The shield might know.</string>
+
+    <string name="off_taps_remaining">%1$d more</string>
+
+    <string name="off_keep">Keep blocking</string>
+
+    <string name="off_1_title">Turn blocking off?</string>
+    <string name="off_1_body">Permanently. No timer, no cooldown. Just off.</string>
+    <string name="off_1_continue">continue</string>
+
+    <string name="off_2_title">Are you sure?</string>
+    <string name="off_2_body">You\'ve dodged %1$d reels so far. All of that was this app doing its job.</string>
+    <string name="off_2_continue">i\'m sure</string>
+
+    <string name="off_3_title">Really?</string>
+    <string name="off_3_body">You installed this on purpose. You wanted to watch fewer reels. Do you still?</string>
+    <string name="off_3_continue">i don\'t care</string>
+
+    <string name="off_4_title">Type this to continue</string>
+    <string name="off_phrase">i know i am making a bad decision but i am doing it anyway</string>
+    <string name="off_4_continue">Continue</string>
+
+    <string name="off_5_title">Final warning.</string>
+    <string name="off_5_body">Are you really, really, really sure?</string>
+    <string name="off_5_continue">I am absolutely sure</string>
+
+    <string name="state_off">Off</string>
+    <string name="state_off_for">off for %1$s</string>
+    <string name="action_turn_back_on">Turn blocking on</string>
 </resources>
