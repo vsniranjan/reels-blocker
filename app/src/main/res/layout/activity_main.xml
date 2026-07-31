@@ -145,7 +145,7 @@
                     android:fontFeatureSettings="tnum"
                     android:textAppearance="?attr/textAppearanceLabelLarge"
                     android:textColor="?attr/colorOnSurfaceVariant"
-                    tools:text="Longer pauses in 1d 4h" />
+                    tools:text="Pausing locked for 1d 4h" />
             </LinearLayout>
         </LinearLayout>
 

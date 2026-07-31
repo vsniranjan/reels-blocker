@@ -46,6 +46,8 @@ Mechanically two stored deadlines and nothing else — no alarms, no background 
 
 Ending a pause early is charged on the time actually paused, so resuming a day-long pause after 3 hours costs 6 hours, not 2 days. Switching blocking off and straight back on does **not** launder an active cooldown — that deadline is absolute.
 
+A running cooldown locks every option (`Prefs.pausesLocked`), five minutes included, and the button that opens the picker is disabled with it. `cooldownFactor == 0` on the five-minute option means only that taking it charges nothing; it never meant the option stays reachable inside a lockout someone else's pause bought. Without that, a 1-day pause could be topped up five minutes at a time for the whole two days it was supposed to cost.
+
 Winding the system clock backwards is handled by clamping: a pause can never read as longer than the option it was started with.
 
 ## Build

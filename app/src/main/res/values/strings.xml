@@ -7,7 +7,7 @@
     <string name="state_protected">Protected</string>
     <string name="state_not_on">Not switched on</string>
     <string name="state_left">LEFT</string>
-    <string name="state_locked">Longer pauses in %1$s</string>
+    <string name="state_locked">Pausing locked for %1$s</string>
 
     <string name="action_turn_on">Turn on</string>
     <string name="action_pause">Pause blocking</string>

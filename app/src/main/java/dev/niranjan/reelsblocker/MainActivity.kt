@@ -200,8 +200,12 @@ class MainActivity : AppCompatActivity() {
         button.icon = when (state) {
             UiState.NOT_SET_UP, UiState.OFF -> null
             UiState.PAUSED -> getDrawable(R.drawable.ic_play)
+            UiState.LOCKED -> getDrawable(R.drawable.ic_lock)
             else -> getDrawable(R.drawable.ic_pause)
         }
+        // A lockout leaves nothing in the picker to tap, so the button that opens
+        // it goes dead too. The pill above it is already counting the wait down.
+        button.isEnabled = state != UiState.LOCKED
 
         // Nothing to count and nothing to configure before the service is running,
         // and nothing being blocked to count while it is switched off.
@@ -289,11 +293,12 @@ class MainActivity : AppCompatActivity() {
 
     /** Row state for one option, re-applied every second while the sheet is open. */
     private fun bindOption(row: View, option: PauseOption, sheet: BottomSheetDialog) {
-        val locked = prefs.isLocked(option)
+        val locked = prefs.pausesLocked
 
         row.findViewById<ImageView>(R.id.option_icon).apply {
             setImageResource(if (locked) R.drawable.ic_lock else R.drawable.ic_timer)
-            // The free option is the always-available one; give it the accent.
+            // The free option is the one that costs nothing to take; give it the
+            // accent. During a lockout nothing is on offer, so nothing is accented.
             imageTintList = colorStateList(
                 if (option.cooldownFactor == 0 && !locked) R.color.brand_primary
                 else R.color.brand_on_surface_variant

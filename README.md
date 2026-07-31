@@ -38,12 +38,14 @@ Day to day there's no off switch, only Pause blocking, which asks how long:
 
 | Pause | What it costs |
 |---|---|
-| 5 minutes | Free, always available |
+| 5 minutes | Free |
 | 15 minutes | 15 min lock afterwards |
 | 30 minutes | 30 min lock afterwards |
 | 1 day | 2 day lock afterwards |
 
-The lock is what stops a long pause being taken again the second it ends. While it runs, the paid options are greyed out and only the free five minutes is left, so you can always take a quick look.
+The lock is what stops a long pause being taken again the second it ends. While one is running you can't pause at all, and the five-minute option is locked with the rest, so a day off doesn't quietly become a day off plus five minutes every five minutes.
+
+Free means the five minutes charges no lock of its own. Take it on its own and you can take it again straight away.
 
 Change your mind and you can resume early, from the app or from the notification, and you're only charged for the time you actually used. Drop a day-long pause after 3 hours and it costs 6 hours instead of 2 days.
 
