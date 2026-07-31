@@ -11,14 +11,15 @@ import android.os.Looper
 import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -336,23 +337,43 @@ class MainActivity : AppCompatActivity() {
         lastTapAt = now
         tapCount++
 
+        val badge = findViewById<View>(R.id.state_icon_bg)
+        recoil(badge)
+        // The last tap lands harder than the ones before it.
+        badge.performHapticFeedback(
+            if (tapCount >= TAPS_TO_REVEAL) HapticFeedbackConstants.LONG_PRESS
+            else HapticFeedbackConstants.KEYBOARD_TAP
+        )
+        paintDamage(tapCount)
+
         if (tapCount >= TAPS_TO_REVEAL) {
-            resetTaps()
+            // Deliberately no reset here: healing the shield the instant the
+            // dialog appears would read as "nothing happened". It stays broken
+            // until the chain ends, one way or the other.
+            ticker.removeCallbacks(tapReset)
             stageOne()
             return
         }
 
-        paintDamage(tapCount)
         ticker.removeCallbacks(tapReset)
         ticker.postDelayed(tapReset, TAP_GAP_MS)
-        val left = TAPS_TO_REVEAL - tapCount
-        if (left <= 3) {
-            Snackbar.make(
-                findViewById(R.id.hero),
-                getString(R.string.off_taps_remaining, left),
-                Snackbar.LENGTH_SHORT,
-            ).show()
-        }
+    }
+
+    /** A short press-in and settle. Enough to feel deliberate, not enough to bounce. */
+    private fun recoil(view: View) {
+        view.animate().cancel()
+        view.animate()
+            .scaleX(1.08f).scaleY(1.08f)
+            .setDuration(90L)
+            .setInterpolator(DecelerateInterpolator())
+            .withEndAction {
+                view.animate()
+                    .scaleX(1f).scaleY(1f)
+                    .setDuration(140L)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+            }
+            .start()
     }
 
     /** Bleeds the badge toward red and stacks on another fracture. */
@@ -425,17 +446,28 @@ class MainActivity : AppCompatActivity() {
     private fun stageFour() {
         val view = layoutInflater.inflate(R.layout.dialog_type_confirm, null)
         val input = view.findViewById<EditText>(R.id.phrase_input)
+        val step = 4
 
-        val dialog = MaterialAlertDialogBuilder(this)
+        val builder = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.off_4_title)
             .setView(view)
-            .setPositiveButton(R.string.off_keep, null)
-            .setNegativeButton(R.string.off_4_continue) { _, _ -> stageFive() }
-            .show()
+            .setOnCancelListener { resetTaps() }
 
-        val continueButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
+        if (continueOnRight(step)) {
+            builder.setPositiveButton(R.string.off_4_continue) { _, _ -> stageFive() }
+            builder.setNegativeButton(R.string.off_keep) { _, _ -> resetTaps() }
+        } else {
+            builder.setPositiveButton(R.string.off_keep) { _, _ -> resetTaps() }
+            builder.setNegativeButton(R.string.off_4_continue) { _, _ -> stageFive() }
+        }
+        val dialog = builder.show()
+
+        val continueButton = dialog.getButton(
+            if (continueOnRight(step)) android.app.AlertDialog.BUTTON_POSITIVE
+            else android.app.AlertDialog.BUTTON_NEGATIVE
+        )
         continueButton.isEnabled = false
-        styleStage(dialog, step = 4)
+        styleStage(dialog, step)
 
         val target = getString(R.string.off_phrase)
         input.addTextChangedListener(object : TextWatcher {
@@ -456,27 +488,40 @@ class MainActivity : AppCompatActivity() {
     ) {
         prefs.disable()
         PauseNotification.cancel(this)
+        // Clears the tap streak as well, so the grey Off badge arrives uncracked.
+        resetTaps()
         restartTicker()
     }
 
     /**
-     * One rung of the ladder. "Keep blocking" is the positive button so it takes
-     * the emphasised slot; carrying on is the negative one, and it shrinks and
-     * fades with every step down.
+     * One rung of the ladder. The two actions swap sides every step, so the chain
+     * has to be read rather than drummed through from muscle memory — which is the
+     * entire reason there are five of them.
      */
     private fun guiltDialog(title: Int, body: String, continueLabel: Int, step: Int, onContinue: () -> Unit) {
-        val dialog = MaterialAlertDialogBuilder(this)
+        val builder = MaterialAlertDialogBuilder(this)
             .setTitle(title)
             .setMessage(body)
-            .setPositiveButton(R.string.off_keep, null)
-            .setNegativeButton(continueLabel) { _, _ -> onContinue() }
-            .show()
-        styleStage(dialog, step)
+            .setOnCancelListener { resetTaps() }
+
+        if (continueOnRight(step)) {
+            builder.setPositiveButton(continueLabel) { _, _ -> onContinue() }
+            builder.setNegativeButton(R.string.off_keep) { _, _ -> resetTaps() }
+        } else {
+            builder.setPositiveButton(R.string.off_keep) { _, _ -> resetTaps() }
+            builder.setNegativeButton(continueLabel) { _, _ -> onContinue() }
+        }
+        styleStage(builder.show(), step)
     }
 
-    /** The way out gets quieter the further in you go. */
+    /** Even steps put the way out on the right, odd steps on the left. */
+    private fun continueOnRight(step: Int) = step % 2 == 0
+
+    /** The way out gets quieter the further in you go, whichever slot it is in. */
     private fun styleStage(dialog: androidx.appcompat.app.AlertDialog, step: Int) {
-        dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)?.apply {
+        val slot = if (continueOnRight(step)) android.app.AlertDialog.BUTTON_POSITIVE
+        else android.app.AlertDialog.BUTTON_NEGATIVE
+        dialog.getButton(slot)?.apply {
             // Floors on both: quieter each step, but never so small or so faint
             // that the way out stops being usable.
             textSize = (14f - step).coerceAtLeast(11f)

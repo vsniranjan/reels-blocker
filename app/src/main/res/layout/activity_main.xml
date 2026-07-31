@@ -5,7 +5,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -13,7 +15,9 @@
         android:orientation="vertical"
         android:paddingHorizontal="24dp"
         android:paddingTop="24dp"
-        android:paddingBottom="32dp">
+        android:paddingBottom="32dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -48,12 +52,18 @@
             android:minHeight="32dp" />
 
         <!-- The state is the hero: icon, one word, nothing else. -->
+        <!--
+          clipChildren off up the whole chain: the badge scales past its own bounds
+          on every tap, and any clipping ancestor shears the top off the recoil.
+        -->
         <LinearLayout
             android:id="@+id/hero"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:gravity="center_horizontal">
+            android:gravity="center_horizontal"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
             <FrameLayout
                 android:id="@+id/state_icon_bg"

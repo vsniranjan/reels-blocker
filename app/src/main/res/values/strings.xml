@@ -59,8 +59,6 @@
     <string name="off_cue_line1">No off switch here.</string>
     <string name="off_cue_line2">The shield might know.</string>
 
-    <string name="off_taps_remaining">%1$d more</string>
-
     <string name="off_keep">Keep blocking</string>
 
     <string name="off_1_title">Turn blocking off?</string>
