@@ -10,7 +10,7 @@
         android:pathData="M45,38 L72,54 L45,70 Z" />
     <!-- Gap under the slash so it reads over the triangle -->
     <path
-        android:strokeColor="#123A57"
+        android:strokeColor="#7A2B08"
         android:strokeWidth="13"
         android:strokeLineCap="round"
         android:pathData="M39,71 L71,37" />

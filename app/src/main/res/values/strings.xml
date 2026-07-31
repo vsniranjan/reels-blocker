@@ -3,42 +3,49 @@
     <string name="app_name">Reels Blocker</string>
     <string name="service_description">Shows a block screen over Instagram Reels so you can get on with your day. Watches only the Instagram app, nothing else.</string>
 
-    <string name="tagline">Instagram, minus the doomscroll.</string>
+    <!-- Home states. The icon carries the meaning; these labels stay one line. -->
+    <string name="state_protected">Protected</string>
+    <string name="state_not_on">Not switched on</string>
+    <string name="state_left">LEFT</string>
+    <string name="state_locked">Longer pauses in %1$s</string>
 
-    <string name="setup_title">One step to go</string>
-    <string name="setup_body">Reels Blocker works through an accessibility service. Flip it on in Settings and you\'re done.</string>
-    <string name="setup_button">Turn it on</string>
-    <string name="setup_restricted_hint">Toggle greyed out? App info → ⋮ → Allow restricted settings, then try again.</string>
+    <string name="action_turn_on">Turn on</string>
+    <string name="action_pause">Pause blocking</string>
+    <string name="action_resume">Resume blocking</string>
 
-    <string name="block_title">Block reels</string>
-    <string name="status_on">Standing guard — reels get a friendly block screen.</string>
-    <string name="status_off">Paused — %1$s left, then blocking resumes.</string>
-    <string name="status_locked">Standing guard — longer pauses locked for %1$s.</string>
-    <string name="pause_hint">Turning this off buys a timed pause. The long ones lock themselves out afterwards.</string>
+    <string name="setup_hint_link">Toggle greyed out?</string>
+    <string name="setup_hint_title">Toggle greyed out?</string>
+    <string name="setup_hint_body">Android blocks accessibility for sideloaded apps until you allow it.\n\nApp info → ⋮ → Allow restricted settings, then try again.</string>
+    <string name="setup_hint_dismiss">Got it</string>
 
-    <string name="pause_dialog_title">Pause blocking for…</string>
-    <string name="pause_dialog_cancel">Cancel</string>
+    <!-- Pause picker. The chip is the whole explanation of what an option costs. -->
+    <string name="pause_sheet_title">Pause blocking</string>
     <string name="pause_option_5m">5 minutes</string>
     <string name="pause_option_15m">15 minutes</string>
     <string name="pause_option_30m">30 minutes</string>
     <string name="pause_option_1d">1 day</string>
-    <string name="pause_cost_free">Always available, no lockout</string>
-    <string name="pause_cost_15m">Then locked out for 15 minutes</string>
-    <string name="pause_cost_30m">Then locked out for 30 minutes</string>
-    <string name="pause_cost_1d">Then locked out for 2 days</string>
-    <string name="pause_option_locked">Locked for another %1$s</string>
+    <string name="pause_cost_free">Free</string>
+    <string name="pause_cost_15m">15 min lock</string>
+    <string name="pause_cost_30m">30 min lock</string>
+    <string name="pause_cost_1d">2 day lock</string>
+
+    <!-- Block panel drawn over Instagram. Two words and a way out. -->
+    <string name="overlay_title">Reels blocked</string>
+    <string name="overlay_exit">Back to feed</string>
 
     <string name="pause_channel_name">Pause timer</string>
-    <string name="pause_notification_title">Reels Blocker paused</string>
-    <string name="pause_notification_body">Blocking turns itself back on when the timer runs out.</string>
-    <string name="pause_notification_resume">Resume blocking now</string>
+    <string name="pause_notification_title">Paused</string>
+    <string name="pause_notification_body">Blocking resumes when the timer ends</string>
+    <string name="pause_notification_resume">Resume blocking</string>
+
+    <string name="watchdog_title">Blocking may have stopped working</string>
+    <string name="watchdog_body">No reels detected in 4 days. Open a reel to check.</string>
 
     <string name="stats_title">Reels dodged</string>
-    <string name="stats_today">today</string>
-    <string name="stats_total">all time</string>
+    <string name="stats_today">TODAY</string>
+    <string name="stats_total">ALL TIME</string>
     <string name="stats_reset">Reset</string>
 
     <string name="advanced_toggle">Advanced</string>
     <string name="dump_switch">Dump Instagram screens</string>
-    <string name="dump_hint">Debug aid for when an Instagram update breaks detection. Dumps land in:\n%1$s</string>
 </resources>

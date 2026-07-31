@@ -4,11 +4,12 @@ import android.accessibilityservice.AccessibilityService
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.graphics.Color
+import android.content.res.ColorStateList
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.os.SystemClock
 import android.util.TypedValue
+import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -16,6 +17,8 @@ import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import java.io.File
@@ -208,41 +211,58 @@ class ReelsBlockerService : AccessibilityService() {
         if (view.parent != null) windowManager.removeView(view)
     }
 
+    /**
+     * A calm wall, not a crash screen: the app's own surface colour, a shield, two
+     * words and a way out. Built against a themed context so ?attr colours in the
+     * shape drawables resolve, and so the panel follows light/dark like the app.
+     */
     private fun buildOverlay(): LinearLayout {
-        val layout = LinearLayout(this).apply {
+        val ctx = ContextThemeWrapper(this, R.style.Theme_ReelsBlocker)
+        val onSurface = resources.getColor(R.color.brand_on_surface, ctx.theme)
+
+        val layout = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setBackgroundColor(0xF2101010.toInt())
+            setBackgroundColor(resources.getColor(R.color.brand_surface, ctx.theme))
         }
-        layout.addView(TextView(this).apply {
-            text = "Reels blocked"
-            setTextColor(Color.WHITE)
-            textSize = 24f
+        layout.addView(FrameLayout(ctx).apply {
+            background = ctx.getDrawable(R.drawable.bg_state_circle)
+            addView(ImageView(ctx).apply {
+                setImageResource(R.drawable.ic_shield)
+                imageTintList = ColorStateList.valueOf(
+                    resources.getColor(R.color.brand_primary, ctx.theme)
+                )
+            }, FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER))
+        }, LinearLayout.LayoutParams(dp(96), dp(96)))
+        layout.addView(TextView(ctx).apply {
+            text = getString(R.string.overlay_title)
+            setTextColor(onSurface)
+            textSize = 26f
             gravity = Gravity.CENTER
+            setPadding(0, dp(24), 0, dp(32))
         })
-        layout.addView(TextView(this).apply {
-            text = "Blocked by Reels Blocker"
-            setTextColor(0xFF9E9E9E.toInt())
-            textSize = 14f
-            gravity = Gravity.CENTER
-            setPadding(0, dp(8), 0, dp(24))
-        })
-        layout.addView(TextView(this).apply {
-            tag = "debug"
-            visibility = View.GONE
-            setTextColor(0xFF80CBC4.toInt())
-            textSize = 12f
-            gravity = Gravity.CENTER
-            setPadding(0, 0, 0, dp(16))
-        })
-        layout.addView(Button(this).apply {
+        layout.addView(Button(ctx).apply {
             tag = "exit"
-            text = "Exit reels"
+            text = getString(R.string.overlay_exit)
+            background = ctx.getDrawable(R.drawable.bg_overlay_button)
+            setTextColor(resources.getColor(R.color.brand_on_primary, ctx.theme))
+            isAllCaps = false
+            textSize = 16f
+            setPadding(dp(32), 0, dp(32), 0)
             setOnClickListener {
                 // User-initiated escape. Prefer clicking the Home tab; in a pushed
                 // viewer (no tab bar) BACK is safe — there is a screen to pop to.
                 if (!clickHomeTab()) performGlobalAction(GLOBAL_ACTION_BACK)
             }
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(56)))
+        layout.addView(TextView(ctx).apply {
+            tag = "debug"
+            visibility = View.GONE
+            setTextColor(resources.getColor(R.color.brand_on_surface_variant, ctx.theme))
+            textSize = 12f
+            typeface = android.graphics.Typeface.MONOSPACE
+            gravity = Gravity.CENTER
+            setPadding(0, dp(32), 0, 0)
         })
         return layout
     }
@@ -303,8 +323,8 @@ class ReelsBlockerService : AccessibilityService() {
         val nm = getSystemService(NotificationManager::class.java)
         val notification = Notification.Builder(this, WATCHDOG_CHANNEL)
             .setSmallIcon(android.R.drawable.stat_notify_error)
-            .setContentTitle("Reels Blocker: detection may be broken")
-            .setContentText("Instagram is in use but no reel surface was seen in days. Open a reel to test; if it plays, update Detection.kt via dump mode.")
+            .setContentTitle(getString(R.string.watchdog_title))
+            .setContentText(getString(R.string.watchdog_body))
             .setStyle(Notification.BigTextStyle())
             .build()
         nm.notify(1, notification)

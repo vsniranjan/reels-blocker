@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="Theme.ReelsBlocker" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">#8FCBFF</item>
-        <item name="colorOnPrimary">#003351</item>
-        <item name="colorPrimaryContainer">#004A73</item>
-        <item name="colorOnPrimaryContainer">#CDE5FF</item>
-    </style>
-</resources>

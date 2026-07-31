@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
@@ -11,218 +12,230 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:paddingHorizontal="24dp"
-        android:paddingTop="32dp"
+        android:paddingTop="24dp"
         android:paddingBottom="32dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/app_name"
-            android:textAppearance="?attr/textAppearanceHeadlineLarge" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/tagline"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
             android:textColor="?attr/colorOnSurfaceVariant" />
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/setup_card"
-            style="?attr/materialCardViewFilledStyle"
+        <!-- Weighted spacers either side float the hero just above centre. -->
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.85"
+            android:minHeight="32dp" />
+
+        <!-- The state is the hero: icon, one word, nothing else. -->
+        <LinearLayout
+            android:id="@+id/hero"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            app:cardBackgroundColor="?attr/colorPrimaryContainer">
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <FrameLayout
+                android:id="@+id/state_icon_bg"
+                android:layout_width="112dp"
+                android:layout_height="112dp"
+                android:background="@drawable/bg_state_circle">
+
+                <ImageView
+                    android:id="@+id/state_icon"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_gravity="center"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_shield" />
+            </FrameLayout>
+
+            <!--
+              Holds both "Protected" and the countdown. tnum keeps the digits from
+              jittering as they tick, so the layout never shifts mid-second.
+            -->
+            <TextView
+                android:id="@+id/state_label"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
+                android:layout_marginTop="24dp"
+                android:fontFeatureSettings="tnum"
+                android:textAppearance="?attr/textAppearanceDisplaySmall"
+                android:textColor="?attr/colorOnSurface"
+                tools:text="Protected" />
+
+            <TextView
+                android:id="@+id/state_sub"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:letterSpacing="0.12"
+                android:text="@string/state_left"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <!-- Cooldown footnote. A pill, not a banner: the user is still protected. -->
+            <LinearLayout
+                android:id="@+id/cooldown_pill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_pill"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="8dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_lock" />
 
                 <TextView
+                    android:id="@+id/cooldown_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/setup_title"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
-                    android:textColor="?attr/colorOnPrimaryContainer" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="@string/setup_body"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnPrimaryContainer" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="@string/setup_restricted_hint"
-                    android:textAppearance="?attr/textAppearanceBodySmall"
-                    android:textColor="?attr/colorOnPrimaryContainer" />
-
-                <Button
-                    android:id="@+id/setup_button"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:text="@string/setup_button" />
+                    android:layout_marginStart="8dp"
+                    android:fontFeatureSettings="tnum"
+                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="Longer pauses in 1d 4h" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1.15"
+            android:minHeight="40dp" />
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/stats_card"
             style="?attr/materialCardViewFilledStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp">
+            app:cardCornerRadius="24dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:padding="20dp">
+                android:paddingVertical="20dp">
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:gravity="center_horizontal"
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/stat_today"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/block_title"
-                        android:textAppearance="?attr/textAppearanceTitleMedium" />
-
-                    <TextView
-                        android:id="@+id/status_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/status_on"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:textAppearance="?attr/textAppearanceHeadlineMedium"
+                        android:textColor="?attr/colorPrimary"
+                        tools:text="7" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/pause_hint"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:letterSpacing="0.1"
+                        android:text="@string/stats_today"
+                        android:textAppearance="?attr/textAppearanceLabelSmall"
                         android:textColor="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
 
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/block_switch"
-                    android:layout_width="wrap_content"
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:background="?attr/colorOutline" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp" />
+                    android:layout_weight="1"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/stat_total"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?attr/textAppearanceHeadlineMedium"
+                        android:textColor="?attr/colorPrimary"
+                        tools:text="184" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:letterSpacing="0.1"
+                        android:text="@string/stats_total"
+                        android:textAppearance="?attr/textAppearanceLabelSmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/primary_button"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp">
+            android:layout_height="60dp"
+            android:layout_marginTop="20dp"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            app:cornerRadius="30dp"
+            app:iconGravity="textStart"
+            app:iconPadding="10dp"
+            tools:icon="@drawable/ic_pause"
+            tools:text="Pause blocking" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/stats_title"
-                        android:textAppearance="?attr/textAppearanceTitleMedium" />
-
-                    <Button
-                        android:id="@+id/stats_reset"
-                        style="?attr/materialButtonOutlinedStyle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="0dp"
-                        android:text="@string/stats_reset" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:orientation="horizontal">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/stat_today"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="0"
-                            android:textAppearance="?attr/textAppearanceDisplaySmall"
-                            android:textColor="?attr/colorPrimary" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/stats_today"
-                            android:textAppearance="?attr/textAppearanceBodyMedium"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/stat_total"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="0"
-                            android:textAppearance="?attr/textAppearanceDisplaySmall"
-                            android:textColor="?attr/colorPrimary" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/stats_total"
-                            android:textAppearance="?attr/textAppearanceBodyMedium"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
+        <!--
+          Only shown before setup. The restricted-settings workaround is real but
+          rare, so it is a link to a dialog rather than a paragraph on the screen.
+        -->
         <TextView
-            android:id="@+id/advanced_toggle"
-            android:layout_width="wrap_content"
+            android:id="@+id/setup_hint"
+            android:layout_width="match_parent"
             android:layout_height="48dp"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:text="@string/setup_hint_link"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <LinearLayout
+            android:id="@+id/advanced_toggle"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
             android:layout_marginTop="12dp"
+            android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
-            android:paddingHorizontal="8dp"
-            android:text="@string/advanced_toggle"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
-            android:textColor="?attr/colorPrimary"
-            android:background="?attr/selectableItemBackground" />
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/advanced_toggle"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <ImageView
+                android:id="@+id/advanced_chevron"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_chevron" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/advanced_section"
@@ -234,10 +247,9 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:minHeight="48dp"
-                android:paddingHorizontal="8dp">
+                android:minHeight="56dp"
+                android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="0dp"
@@ -255,12 +267,37 @@
 
             <TextView
                 android:id="@+id/dump_path"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="8dp"
-                android:paddingTop="4dp"
+                android:paddingBottom="12dp"
                 android:textAppearance="?attr/textAppearanceBodySmall"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:typeface="monospace"
+                tools:text="/storage/emulated/0/…/dumps/" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:minHeight="56dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/stats_title"
+                    android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/stats_reset"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:minWidth="0dp"
+                    android:text="@string/stats_reset" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

@@ -1,9 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Static fallback scheme (harbor blue); Android 12+ gets Material You dynamic color. -->
+<!--
+  Ember: a warm orange scheme seeded from #FF6B2C. Light values here, dark in
+  values-night. Material You dynamic colour stays off — monochrome wallpaper
+  palettes wash the whole app grey, and the orange is the point.
+
+  onPrimary is near-black rather than white on purpose: white on #FF6B2C is only
+  3.1:1, which fails for a button label. Dark ink on the same orange is 5.6:1.
+-->
 <resources>
-    <color name="brand_primary">#1F6392</color>
-    <color name="brand_on_primary">#FFFFFF</color>
-    <color name="brand_primary_container">#CDE5FF</color>
-    <color name="brand_on_primary_container">#001D31</color>
-    <color name="ic_launcher_background">#123A57</color>
+    <color name="brand_primary">#FF6B2C</color>
+    <color name="brand_on_primary">#2B1200</color>
+    <color name="brand_primary_container">#FFDBCC</color>
+    <color name="brand_on_primary_container">#3A1000</color>
+
+    <color name="brand_surface">#FDFAF8</color>
+    <color name="brand_on_surface">#1C1B1A</color>
+    <color name="brand_surface_container">#F6EDE8</color>
+    <color name="brand_on_surface_variant">#4F4540</color>
+    <color name="brand_outline">#E0D5CF</color>
+
+    <!-- The state circle when blocking is off: neutral, deliberately not orange. -->
+    <color name="brand_muted_container">#EAE4E0</color>
+    <color name="brand_on_muted_container">#6B625D</color>
+
+    <color name="ic_launcher_background">#7A2B08</color>
 </resources>

@@ -1,24 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:minHeight="56dp"
+    android:background="?attr/selectableItemBackground"
     android:gravity="center_vertical"
-    android:paddingHorizontal="24dp"
-    android:paddingVertical="12dp">
+    android:minHeight="64dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="24dp">
+
+    <ImageView
+        android:id="@+id/option_icon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:importantForAccessibility="no"
+        tools:src="@drawable/ic_timer" />
 
     <TextView
         android:id="@+id/option_label"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceBodyLarge" />
+        android:layout_marginStart="20dp"
+        android:layout_weight="1"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        android:textColor="?attr/colorOnSurface"
+        tools:text="15 minutes" />
 
+    <!-- The cost, or the countdown when locked. Quiet: it informs, it doesn't shout. -->
     <TextView
-        android:id="@+id/option_caption"
+        android:id="@+id/option_chip"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:textAppearance="?attr/textAppearanceBodySmall"
-        android:textColor="?attr/colorOnSurfaceVariant" />
+        android:layout_marginStart="16dp"
+        android:background="@drawable/bg_chip"
+        android:fontFeatureSettings="tnum"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="5dp"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="15 min lock" />
 </LinearLayout>

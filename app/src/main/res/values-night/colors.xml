@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark is the primary scheme: this is what most users see. -->
+<resources>
+    <color name="brand_primary">#FF6B2C</color>
+    <color name="brand_on_primary">#2B1200</color>
+    <color name="brand_primary_container">#4A1A02</color>
+    <color name="brand_on_primary_container">#FFDBCC</color>
+
+    <color name="brand_surface">#121110</color>
+    <color name="brand_on_surface">#ECE0DB</color>
+    <color name="brand_surface_container">#221F1D</color>
+    <color name="brand_on_surface_variant">#B5A9A3</color>
+    <color name="brand_outline">#3A3532</color>
+
+    <color name="brand_muted_container">#262322</color>
+    <color name="brand_on_muted_container">#9A8F8A</color>
+</resources>
