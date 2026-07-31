@@ -108,6 +108,10 @@ class MainActivity : AppCompatActivity() {
         ) {
             requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1)
         }
+
+        // Only on a genuinely fresh start: onCreate runs again on rotation, and a
+        // sheet that reappears every time the phone turns is a bug, not a notice.
+        if (savedInstanceState == null) maybeAnnounceUpdate()
     }
 
     override fun onResume() {
@@ -554,10 +558,67 @@ class MainActivity : AppCompatActivity() {
             sheet.dismiss()
         }
 
+        view.findViewById<TextView>(R.id.changelog_version).text = installedVersionName()
+        view.findViewById<View>(R.id.changelog_row).setOnClickListener {
+            sheet.dismiss()
+            showChangelogSheet(announcing = null)
+        }
+
         sheet.setOnDismissListener { refresh() }
         sheet.setContentView(view)
         sheet.show()
     }
+
+    /**
+     * Every release the app has had, newest first, with the ones that arrived in
+     * [announcing] badged. Null when the user opened it themselves — then nothing
+     * is new, they came looking.
+     */
+    private fun showChangelogSheet(announcing: Int?) {
+        val sheet = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.sheet_changelog, null)
+        val list = view.findViewById<android.view.ViewGroup>(R.id.release_list)
+
+        view.findViewById<TextView>(R.id.changelog_title).text =
+            if (announcing == null) getString(R.string.changelog_title)
+            else getString(R.string.changelog_title_updated, installedVersionName())
+
+        Changelog.RELEASES.forEach { release ->
+            val row = layoutInflater.inflate(R.layout.item_changelog_release, list, false)
+            row.findViewById<TextView>(R.id.release_version).text = release.version
+            row.findViewById<TextView>(R.id.release_changes).text =
+                release.changes.joinToString("\n") { "•  $it" }
+            row.findViewById<View>(R.id.release_badge).visibility =
+                visibleIf(announcing != null && release.versionCode > announcing)
+            list.addView(row)
+        }
+
+        sheet.setContentView(view)
+        sheet.show()
+    }
+
+    /**
+     * Opens the changelog once after an update, and never on a first run: someone
+     * installing the app has no previous version to be told about. Recording the
+     * version before the sheet is even dismissed is deliberate — a rotation or a
+     * back press must not queue it up again.
+     */
+    private fun maybeAnnounceUpdate() {
+        val installed = installedVersionCode()
+        val seen = prefs.lastSeenVersion
+        prefs.lastSeenVersion = installed
+        if (seen != 0 && seen < installed) showChangelogSheet(announcing = seen)
+    }
+
+    // Read from the package rather than BuildConfig, which this project does not
+    // generate, and which would drift from what is actually installed anyway.
+    private fun packageInfo() = packageManager.getPackageInfo(packageName, 0)
+
+    private fun installedVersionName(): String = packageInfo().versionName ?: ""
+
+    private fun installedVersionCode(): Int =
+        if (Build.VERSION.SDK_INT >= 28) packageInfo().longVersionCode.toInt()
+        else @Suppress("DEPRECATION") packageInfo().versionCode
 
     private fun labelOf(option: PauseOption) = when (option) {
         PauseOption.FIVE_MIN -> R.string.pause_option_5m

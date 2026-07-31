@@ -49,6 +49,12 @@
     <string name="advanced_title">Advanced</string>
     <string name="dump_switch">Dump Instagram screens</string>
 
+    <!-- Changelog. The title changes when the sheet opens itself after an update. -->
+    <string name="changelog_row">What\'s new</string>
+    <string name="changelog_title">What\'s new</string>
+    <string name="changelog_title_updated">Updated to %1$s</string>
+    <string name="changelog_new">NEW</string>
+
     <!--
       The escape hatch. Reached by tapping the state badge seven times; the cue
       below is the only acknowledgement anywhere that it exists.

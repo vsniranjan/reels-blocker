@@ -81,6 +81,38 @@
     </LinearLayout>
 
     <!--
+      Carries the version number, so the one place people look for "what am I
+      running" is also the way back into the notes for it.
+    -->
+    <LinearLayout
+        android:id="@+id/changelog_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:minHeight="64dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="24dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/changelog_row"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="?attr/colorOnSurface" />
+
+        <TextView
+            android:id="@+id/changelog_version"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="2.0" />
+    </LinearLayout>
+
+    <!--
       The only hint that an off switch exists. This is where someone hunting for
       one looks first, so it points at the badge without giving the gesture away.
     -->

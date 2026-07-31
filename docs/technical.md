@@ -60,6 +60,14 @@ JAVA_HOME=/path/to/jdk21 ANDROID_HOME=/path/to/Android/Sdk ./gradlew assembleDeb
 
 APK lands at `app/build/outputs/apk/debug/app-debug.apk`. Install over an existing copy with `adb install -r`, which keeps the accessibility service enabled; a `force-stop` drops the service from `enabled_accessibility_services` and it does not come back on its own.
 
+## Cutting a release
+
+1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
+2. Add a `Changelog.RELEASES` entry with **the same versionCode**. That number is what decides whether a given install has already seen the entry, so an entry with a stale or missing code never announces itself, and a version bump without an entry updates people silently.
+3. Build, tag, and publish with the APK attached.
+
+`Prefs.lastSeenVersion` holds the newest code whose notes have been shown. `MainActivity.maybeAnnounceUpdate()` records it before the sheet is dismissed rather than after, so a rotation or a back press cannot queue the same notice twice, and it treats 0 as a first install — someone installing the app has no previous version to be told about.
+
 ## When an Instagram update breaks detection
 
 Instagram renames internal view IDs a few times a year. The app notifies you if Instagram is in use but no reel surface has been seen for 4 days.

@@ -142,6 +142,15 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("dumpMode", false)
         set(value) = sp.edit().putBoolean("dumpMode", value).apply()
 
+    /**
+     * Newest versionCode whose changes have been shown. 0 means this install has
+     * never opened the app, which is not an update — a first run gets the app,
+     * not a summary of what it used to be.
+     */
+    var lastSeenVersion: Int
+        get() = sp.getInt("lastSeenVersion", 0)
+        set(value) = sp.edit().putInt("lastSeenVersion", value).apply()
+
     val blockedToday: Int
         get() = if (sp.getString("blockedDate", "") == today()) sp.getInt("blockedToday", 0) else 0
 
