@@ -13,11 +13,25 @@
     <string name="block_title">Block reels</string>
     <string name="status_on">Standing guard — reels get a friendly block screen.</string>
     <string name="status_off">Paused — %1$s left, then blocking resumes.</string>
-    <string name="pause_hint">Turning this off pauses blocking for 5 minutes only.</string>
+    <string name="status_locked">Standing guard — longer pauses locked for %1$s.</string>
+    <string name="pause_hint">Turning this off buys a timed pause. The long ones lock themselves out afterwards.</string>
+
+    <string name="pause_dialog_title">Pause blocking for…</string>
+    <string name="pause_dialog_cancel">Cancel</string>
+    <string name="pause_option_5m">5 minutes</string>
+    <string name="pause_option_15m">15 minutes</string>
+    <string name="pause_option_30m">30 minutes</string>
+    <string name="pause_option_1d">1 day</string>
+    <string name="pause_cost_free">Always available, no lockout</string>
+    <string name="pause_cost_15m">Then locked out for 15 minutes</string>
+    <string name="pause_cost_30m">Then locked out for 30 minutes</string>
+    <string name="pause_cost_1d">Then locked out for 2 days</string>
+    <string name="pause_option_locked">Locked for another %1$s</string>
 
     <string name="pause_channel_name">Pause timer</string>
     <string name="pause_notification_title">Reels Blocker paused</string>
     <string name="pause_notification_body">Blocking turns itself back on when the timer runs out.</string>
+    <string name="pause_notification_resume">Resume blocking now</string>
 
     <string name="stats_title">Reels dodged</string>
     <string name="stats_today">today</string>

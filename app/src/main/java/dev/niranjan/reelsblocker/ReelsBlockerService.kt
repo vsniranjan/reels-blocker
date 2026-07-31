@@ -52,6 +52,10 @@ class ReelsBlockerService : AccessibilityService() {
         prefs = Prefs(this)
         prefs.ensureBaseline()
         createNotificationChannel()
+        // A reboot or a stray dismissal wipes the shade countdown, and a day-long
+        // pause should stay resumable from there without opening the app.
+        PauseNotification.ensureChannel(this)
+        PauseNotification.show(this, prefs)
         overlay = buildOverlay()
         instance = this
     }
