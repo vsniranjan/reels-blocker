@@ -129,16 +129,28 @@ class MainActivity : AppCompatActivity() {
         val pill = findViewById<View>(R.id.cooldown_pill)
         val button = findViewById<MaterialButton>(R.id.primary_button)
 
-        // Blocking off means a muted circle; only an active guard earns the orange.
-        val active = state == UiState.PROTECTED || state == UiState.LOCKED
+        // Green guarding, red exposed, grey never started. The badge answers "am I
+        // protected", so it uses semantic colour rather than the brand orange.
         iconBg.backgroundTintList = colorStateList(
-            if (active) R.color.brand_primary_container else R.color.brand_muted_container
+            when (state) {
+                UiState.PROTECTED, UiState.LOCKED -> R.color.state_ok_container
+                UiState.PAUSED -> R.color.state_off_container
+                UiState.NOT_SET_UP -> R.color.brand_muted_container
+            }
         )
         icon.imageTintList = colorStateList(
-            if (active) R.color.brand_primary else R.color.brand_on_muted_container
+            when (state) {
+                UiState.PROTECTED, UiState.LOCKED -> R.color.state_ok
+                UiState.PAUSED -> R.color.state_off
+                UiState.NOT_SET_UP -> R.color.brand_on_muted_container
+            }
         )
 
-        icon.setImageResource(if (state == UiState.PAUSED) R.drawable.ic_pause else R.drawable.ic_shield)
+        // A struck-through shield, not a pause glyph: a lone pause symbol in a
+        // filled circle reads as a button and invites a tap that does nothing.
+        icon.setImageResource(
+            if (state == UiState.PAUSED) R.drawable.ic_shield_off else R.drawable.ic_shield
+        )
         label.text = when (state) {
             UiState.PAUSED -> formatDuration(remaining)
             UiState.NOT_SET_UP -> getString(R.string.state_not_on)
@@ -219,37 +231,59 @@ class MainActivity : AppCompatActivity() {
         val view = layoutInflater.inflate(R.layout.sheet_pause, null)
         val list = view.findViewById<android.view.ViewGroup>(R.id.option_list)
 
-        PauseOption.values().forEach { option ->
+        val rows = PauseOption.values().map { option ->
             val row = LayoutInflater.from(this).inflate(R.layout.item_pause_option, list, false)
-            val locked = prefs.isLocked(option)
-
-            row.findViewById<ImageView>(R.id.option_icon).apply {
-                setImageResource(if (locked) R.drawable.ic_lock else R.drawable.ic_timer)
-                // The free option is the always-available one; give it the accent.
-                imageTintList = colorStateList(
-                    if (option.cooldownFactor == 0 && !locked) R.color.brand_primary
-                    else R.color.brand_on_surface_variant
-                )
-            }
-            row.findViewById<TextView>(R.id.option_label).setText(labelOf(option))
-            row.findViewById<TextView>(R.id.option_chip).text =
-                if (locked) formatDuration(prefs.cooldownRemainingMs) else getString(costOf(option))
-
-            row.alpha = if (locked) 0.38f else 1f
-            row.isEnabled = !locked
-            if (!locked) {
-                row.setOnClickListener {
-                    prefs.pause(option)
-                    PauseNotification.show(this, prefs)
-                    sheet.dismiss()
-                }
-            }
+            bindOption(row, option, sheet)
             list.addView(row)
+            option to row
         }
 
-        sheet.setOnDismissListener { restartTicker() }
+        // The lockout chips are countdowns like the one on the home screen, so they
+        // tick too — and a row that unlocks while the sheet is open becomes usable
+        // without the user having to close and reopen it.
+        val sheetTicker = object : Runnable {
+            override fun run() {
+                rows.forEach { (option, row) -> bindOption(row, option, sheet) }
+                if (prefs.cooldownRemainingMs > 0) ticker.postDelayed(this, 1000L)
+            }
+        }
+        sheet.setOnShowListener { ticker.postDelayed(sheetTicker, 1000L) }
+        sheet.setOnDismissListener {
+            ticker.removeCallbacks(sheetTicker)
+            restartTicker()
+        }
         sheet.setContentView(view)
         sheet.show()
+    }
+
+    /** Row state for one option, re-applied every second while the sheet is open. */
+    private fun bindOption(row: View, option: PauseOption, sheet: BottomSheetDialog) {
+        val locked = prefs.isLocked(option)
+
+        row.findViewById<ImageView>(R.id.option_icon).apply {
+            setImageResource(if (locked) R.drawable.ic_lock else R.drawable.ic_timer)
+            // The free option is the always-available one; give it the accent.
+            imageTintList = colorStateList(
+                if (option.cooldownFactor == 0 && !locked) R.color.brand_primary
+                else R.color.brand_on_surface_variant
+            )
+        }
+        row.findViewById<TextView>(R.id.option_label).setText(labelOf(option))
+        row.findViewById<TextView>(R.id.option_chip).text =
+            if (locked) formatDuration(prefs.cooldownRemainingMs) else getString(costOf(option))
+
+        row.alpha = if (locked) 0.38f else 1f
+        row.isEnabled = !locked
+        row.setOnClickListener(
+            if (locked) null else View.OnClickListener {
+                prefs.pause(option)
+                PauseNotification.show(this, prefs)
+                sheet.dismiss()
+            }
+        )
+        // Must follow setOnClickListener: that call force-sets clickable even when
+        // handed null, which would leave a locked row rippling under the finger.
+        row.isClickable = !locked
     }
 
     private fun labelOf(option: PauseOption) = when (option) {

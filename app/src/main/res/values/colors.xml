@@ -19,7 +19,17 @@
     <color name="brand_on_surface_variant">#4F4540</color>
     <color name="brand_outline">#E0D5CF</color>
 
-    <!-- The state circle when blocking is off: neutral, deliberately not orange. -->
+    <!--
+      Semantic state colours for the hero badge only. Orange stays the brand
+      accent (button, counters); green and red answer "am I protected right now",
+      which is a different question from "what colour is this app".
+    -->
+    <color name="state_ok">#147A45</color>
+    <color name="state_ok_container">#D5EFDF</color>
+    <color name="state_off">#B3261E</color>
+    <color name="state_off_container">#FADDDB</color>
+
+    <!-- Never set up: inactive, not an alarm. Neutral rather than red. -->
     <color name="brand_muted_container">#EAE4E0</color>
     <color name="brand_on_muted_container">#6B625D</color>
 

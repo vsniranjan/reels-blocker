@@ -12,6 +12,11 @@
     <color name="brand_on_surface_variant">#B5A9A3</color>
     <color name="brand_outline">#3A3532</color>
 
+    <color name="state_ok">#5BD98C</color>
+    <color name="state_ok_container">#15301F</color>
+    <color name="state_off">#FF8A80</color>
+    <color name="state_off_container">#3A1A18</color>
+
     <color name="brand_muted_container">#262322</color>
     <color name="brand_on_muted_container">#9A8F8A</color>
 </resources>
