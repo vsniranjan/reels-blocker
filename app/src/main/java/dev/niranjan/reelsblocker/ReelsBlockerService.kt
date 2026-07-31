@@ -8,6 +8,7 @@ import android.content.res.ColorStateList
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.os.SystemClock
+import android.util.Log
 import android.util.TypedValue
 import android.view.ContextThemeWrapper
 import android.view.Gravity
@@ -32,6 +33,7 @@ class ReelsBlockerService : AccessibilityService() {
         private const val DUMP_THROTTLE_MS = 2000L
         private const val BLOCK_COUNT_GAP_MS = 10_000L
         private const val BFS_NODE_CAP = 600
+        private const val TAG = "ReelsBlocker"
         private const val REEL_SIGNAL_WRITE_THROTTLE_MS = 60_000L
         private const val BROKEN_AFTER_MS = 4 * 24 * 60 * 60 * 1000L   // 4 days without any reel signal
         private const val WARN_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000L  // re-warn at most every 3 days
@@ -46,6 +48,20 @@ class ReelsBlockerService : AccessibilityService() {
 
     private var overlay: LinearLayout? = null
     private var overlayShown = false
+
+    /**
+     * Author of the reel a feed grant was issued for, null when no grant is live.
+     * The grant covers that one reel: when a different author is on screen the user
+     * has swiped on into the endless feed, and [feedGrantSpent] latches.
+     *
+     * Scroll events looked like the obvious signal here and are not: opening a reel
+     * from partway down the feed makes the pager settle onto it and report scrolls,
+     * while a quick flick to the next reel reports only the index it lands on — so
+     * neither "any pager scroll" nor "the index changed" can tell arriving from
+     * leaving. What is on screen can.
+     */
+    private var grantedAuthor: String? = null
+    private var feedGrantSpent = false
 
     private val windowManager: WindowManager
         get() = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -98,6 +114,7 @@ class ReelsBlockerService : AccessibilityService() {
             hideOverlay()
             return
         }
+
         val root = rootInActiveWindow
         if (root == null || root.packageName?.toString() != Detection.INSTAGRAM_PACKAGE) {
             hideOverlay()
@@ -124,14 +141,56 @@ class ReelsBlockerService : AccessibilityService() {
             maybeWarnDetectionBroken()
         }
 
-        // Viewer with the reply-to-sender bar is a reel shared in a DM. Allowed.
-        val dmViewer = inViewer && !reelsTabSelected &&
-            findAnyById(root, Detection.DM_VIEWER_MARKER_IDS) != null
+        // Leaving the viewer ends the session, so the next reel opened from the feed
+        // is a fresh grant. Reopening is the price of a second reel.
+        if (!inViewer) {
+            grantedAuthor = null
+            feedGrantSpent = false
+        }
 
-        if (reelSurface && prefs.blockingEnabled && !dmViewer) {
-            showOverlay(root, if (inViewer) viewer?.viewIdResourceName else "reels_tab_selected")
+        val pushedViewer = inViewer && !reelsTabSelected
+
+        // Viewer with the reply-to-sender bar is a reel shared in a DM. Allowed.
+        val dmViewer = pushedViewer && findAnyById(root, Detection.DM_VIEWER_MARKER_IDS) != null
+
+        // Viewer wearing the Reels/Friends tab strip was opened from the home feed.
+        // Allowed for that one reel: swiping on into the endless feed re-blocks,
+        // the same boundary the DM reply bar draws for a shared reel.
+        val feedMarker = pushedViewer &&
+            findAnyById(root, Detection.FEED_VIEWER_MARKER_IDS) != null
+        if (feedMarker) trackFeedGrant(root)
+        val feedViewer = feedMarker && !feedGrantSpent
+
+        if (reelSurface && prefs.blockingEnabled && !dmViewer && !feedViewer) {
+            // Blocking a viewer that still carries the feed marker can only mean the
+            // grant was spent — every other pushed viewer reports its own id.
+            val trigger = when {
+                !inViewer -> "reels_tab_selected"
+                feedMarker -> "feed_grant_spent"
+                else -> viewer?.viewIdResourceName
+            }
+            showOverlay(root, trigger)
         } else {
             hideOverlay()
+        }
+    }
+
+    /**
+     * Anchors a feed grant to the reel on screen, and spends it once a different
+     * reel takes its place. A blank author means the next reel has not drawn itself
+     * yet — that is a gap in the evidence, not a swipe, so the grant survives it.
+     */
+    private fun trackFeedGrant(root: AccessibilityNodeInfo) {
+        val author = findAnyById(root, Detection.REEL_AUTHOR_IDS)
+            ?.text?.toString()?.takeIf { it.isNotBlank() }
+            ?: return
+        val granted = grantedAuthor
+        if (granted == null) {
+            grantedAuthor = author
+            if (prefs.dumpMode) Log.d(TAG, "feed grant anchored to $author")
+        } else if (author != granted && !feedGrantSpent) {
+            feedGrantSpent = true
+            if (prefs.dumpMode) Log.d(TAG, "feed grant spent: $granted -> $author")
         }
     }
 
