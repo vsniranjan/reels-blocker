@@ -8,6 +8,7 @@ import android.content.res.ColorStateList
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.os.SystemClock
+import android.util.Log
 import android.util.TypedValue
 import android.view.ContextThemeWrapper
 import android.view.Gravity
@@ -32,6 +33,8 @@ class ReelsBlockerService : AccessibilityService() {
         private const val DUMP_THROTTLE_MS = 2000L
         private const val BLOCK_COUNT_GAP_MS = 10_000L
         private const val BFS_NODE_CAP = 600
+        private const val PAGER_ANCESTOR_CAP = 6
+        private const val TAG = "ReelsBlocker"
         private const val REEL_SIGNAL_WRITE_THROTTLE_MS = 60_000L
         private const val BROKEN_AFTER_MS = 4 * 24 * 60 * 60 * 1000L   // 4 days without any reel signal
         private const val WARN_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000L  // re-warn at most every 3 days
@@ -46,6 +49,17 @@ class ReelsBlockerService : AccessibilityService() {
 
     private var overlay: LinearLayout? = null
     private var overlayShown = false
+
+    /**
+     * Set when the user swipes off the reel they opened from the feed, cleared when
+     * they leave the viewer entirely. A feed-opened reel is allowed once per open:
+     * without this the check below would simply re-allow the next reel, and one tap
+     * would buy an endless scroll.
+     */
+    private var feedSwipedAway = false
+
+    /** Reel the pager is parked on, -1 before the first scroll of a viewer session. */
+    private var pagerIndex = -1
 
     private val windowManager: WindowManager
         get() = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -98,6 +112,21 @@ class ReelsBlockerService : AccessibilityService() {
             hideOverlay()
             return
         }
+
+        // Scrolls are frequent — feed, comments, explore all fire them. Decide from
+        // the event alone and get out, before paying for a tree walk; only a swipe
+        // on the reel pager changes anything, and that one falls through so the
+        // overlay lands on the next reel immediately.
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
+            if (!isReelPagerScroll(event)) return
+            // Opening a reel from partway down the feed settles the pager onto it,
+            // which reports scrolls without ever leaving the page. Landing is not
+            // swiping: only a move to a different reel spends the grant.
+            val index = event.toIndex
+            if (pagerIndex != -1 && index != pagerIndex) feedSwipedAway = true
+            pagerIndex = index
+        }
+
         val root = rootInActiveWindow
         if (root == null || root.packageName?.toString() != Detection.INSTAGRAM_PACKAGE) {
             hideOverlay()
@@ -124,15 +153,60 @@ class ReelsBlockerService : AccessibilityService() {
             maybeWarnDetectionBroken()
         }
 
-        // Viewer with the reply-to-sender bar is a reel shared in a DM. Allowed.
-        val dmViewer = inViewer && !reelsTabSelected &&
-            findAnyById(root, Detection.DM_VIEWER_MARKER_IDS) != null
+        // Leaving the viewer ends the session, so the next reel opened from the feed
+        // is a fresh grant. Reopening is the price of a second reel.
+        if (!inViewer) {
+            feedSwipedAway = false
+            pagerIndex = -1
+        }
 
-        if (reelSurface && prefs.blockingEnabled && !dmViewer) {
-            showOverlay(root, if (inViewer) viewer?.viewIdResourceName else "reels_tab_selected")
+        val pushedViewer = inViewer && !reelsTabSelected
+
+        // Viewer with the reply-to-sender bar is a reel shared in a DM. Allowed.
+        val dmViewer = pushedViewer && findAnyById(root, Detection.DM_VIEWER_MARKER_IDS) != null
+
+        // Viewer wearing the Reels/Friends tab strip was opened from the home feed.
+        // Allowed for that one reel: swiping on into the endless feed re-blocks,
+        // the same boundary the DM reply bar draws for a shared reel.
+        val feedMarker = pushedViewer &&
+            findAnyById(root, Detection.FEED_VIEWER_MARKER_IDS) != null
+        val feedViewer = feedMarker && !feedSwipedAway
+
+        if (reelSurface && prefs.blockingEnabled && !dmViewer && !feedViewer) {
+            // Blocking a viewer that still carries the feed marker can only mean the
+            // grant was swiped away — every other pushed viewer reports its own id.
+            val trigger = when {
+                !inViewer -> "reels_tab_selected"
+                feedMarker -> "feed_grant_revoked"
+                else -> viewer?.viewIdResourceName
+            }
+            showOverlay(root, trigger)
         } else {
             hideOverlay()
         }
+    }
+
+    /**
+     * True when [event] is a scroll of the reel pager — i.e. a swipe between reels
+     * rather than the feed, a comment sheet or the explore grid. On the build tested
+     * (2026-07-31) the pager reports scrolls under its own id; the walk up the
+     * ancestors is there for the day it reports them from an inner view instead.
+     */
+    private fun isReelPagerScroll(event: AccessibilityEvent): Boolean {
+        val source = event.source ?: return false
+        if (prefs.dumpMode) Log.d(
+            TAG,
+            "scroll src=${source.viewIdResourceName} from=${event.fromIndex} to=${event.toIndex}" +
+                " items=${event.itemCount} dy=${event.scrollDeltaY} y=${event.scrollY}"
+        )
+        var node: AccessibilityNodeInfo? = source
+        var depth = 0
+        while (node != null && depth < PAGER_ANCESTOR_CAP) {
+            if (node.viewIdResourceName in Detection.VIEWER_IDS) return true
+            node = node.parent
+            depth++
+        }
+        return false
     }
 
     /** Visible to the user and covering at least ~60% of screen height and width. */

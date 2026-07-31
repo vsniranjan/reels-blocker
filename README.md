@@ -1,10 +1,15 @@
 # Reels Blocker
 
-Personal Android app. Blocks Instagram Reels via an AccessibilityService; the rest of Instagram is untouched. Reels shared in DMs still play.
+Personal Android app. Blocks Instagram Reels via an AccessibilityService; the rest of Instagram is untouched. Reels shared in DMs still play, and a reel tapped in the home feed plays until you swipe off it.
 
 ## How it works
 
-An accessibility service watches only `com.instagram.android`. When the fullscreen reels viewer (or a selected Reels tab) is on screen, it covers the reel with a `TYPE_ACCESSIBILITY_OVERLAY` window — unless the viewer was opened from a DM (detected via the reply-to-sender bar), in which case that reel is allowed.
+An accessibility service watches only `com.instagram.android`. When the fullscreen reels viewer (or a selected Reels tab) is on screen, it covers the reel with a `TYPE_ACCESSIBILITY_OVERLAY` window — unless that one reel is allowed:
+
+- **Opened from a DM**, detected via the reply-to-sender bar.
+- **Opened from the home feed**, detected via the Reels/Friends tab strip in the viewer's action bar, which a viewer pushed from explore does not show (it shows a plain "Explore" title instead).
+
+Both allowances cover the reel you opened and nothing more. The DM one ends by itself — the reply bar belongs to the shared reel — and the feed one is ended explicitly: a swipe of the reel pager to a different reel drops the grant and the overlay comes back. Leaving the viewer resets it, so the next reel you tap in the feed is allowed again. Nothing is persisted; a service restart just means the next reel is blocked until you reopen it.
 
 Day to day there is no off switch — only **Pause blocking**, which opens a picker of timed pauses: 5 minutes, 15 minutes, 30 minutes or 1 day. Every option but the 5-minute one charges a **cooldown** once it ends, during which the paid options are locked:
 
@@ -72,7 +77,9 @@ All detection constants live in `Detection.kt` — nothing else needs touching. 
 ## Known limitations
 
 - View IDs in `Detection.kt` were verified on-device in July 2026; they will drift with Instagram updates (see above).
-- DM detection is heuristic: scrolling past a DM-shared reel into the endless feed is blocked by design, but a missed marker may block a legitimate DM reel (reopen usually works).
+- DM and feed detection are heuristic: scrolling past an allowed reel into the endless feed is blocked by design, but a missed marker may block a legitimate DM or feed reel (reopen usually works).
+- Sponsored reels in the feed open a viewer without the Reels/Friends tab strip, so they are blocked like any other reel.
+- Nothing caps how often the feed allowance can be spent — back out, tap the next reel, repeat. The friction of doing that is the only limit, same bet the DM path makes.
 - Reels tab content-description fallback assumes English locale.
 - Not affiliated with Instagram/Meta. Reading another app's accessibility tree and overlaying it likely sits outside Instagram's ToS — personal use at your own risk.
 
