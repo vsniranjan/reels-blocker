@@ -12,6 +12,11 @@ val keystoreProps = Properties().apply {
     if (f.exists()) f.inputStream().use { load(it) }
 }
 
+// One place to bump. defaultConfig and the APK filename both read from here, so
+// a release cannot end up named after a version it does not contain.
+val appVersionName = "2.1"
+val appVersionCode = 5
+
 android {
     namespace = "dev.niranjan.reelsblocker"
     compileSdk = 35
@@ -20,8 +25,8 @@ android {
         applicationId = "dev.niranjan.reelsblocker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "2.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
     }
 
     signingConfigs {
@@ -51,6 +56,18 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+    }
+}
+
+// Ship the version in the filename. A folder of app-release.apk copies tells you
+// nothing about which is which, and the name is what people download.
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            (output as? com.android.build.api.variant.impl.VariantOutputImpl)?.outputFileName?.set(
+                "reels-blocker-v$appVersionName-${variant.buildType}.apk"
+            )
+        }
     }
 }
 

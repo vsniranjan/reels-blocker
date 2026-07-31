@@ -62,9 +62,9 @@ APK lands at `app/build/outputs/apk/debug/app-debug.apk`. Install over an existi
 
 ## Cutting a release
 
-1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
+1. Bump `appVersionName` and `appVersionCode` at the top of `app/build.gradle.kts`. `defaultConfig` and the APK filename both read from those, so a release cannot end up named after a version it does not contain.
 2. Add a `Changelog.RELEASES` entry with **the same versionCode**. That number is what decides whether a given install has already seen the entry, so an entry with a stale or missing code never announces itself, and a version bump without an entry updates people silently.
-3. Build, tag, and publish with the APK attached.
+3. Build, tag, and publish. `assembleRelease` writes `reels-blocker-v<version>-release.apk`, which is the name to attach to the release.
 
 `Prefs.lastSeenVersion` holds the newest code whose notes have been shown. `MainActivity.maybeAnnounceUpdate()` records it before the sheet is dismissed rather than after, so a rotation or a back press cannot queue the same notice twice, and it treats 0 as a first install — someone installing the app has no previous version to be told about.
 

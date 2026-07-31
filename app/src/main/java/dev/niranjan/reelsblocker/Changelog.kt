@@ -18,6 +18,13 @@ object Changelog {
     /** Newest first — the order the sheet renders in. */
     val RELEASES = listOf(
         Release(
+            "2.1", 5,
+            listOf(
+                "This list. The app now keeps its own summary of what changed in each version, and shows it once after an update.",
+                "You can reopen it any time from the ⋮ menu, under What's new.",
+            ),
+        ),
+        Release(
             "2.0", 4,
             listOf(
                 "Reels you tap in your own feed now play, one reel at a time. Swipe to the next and the block screen is back.",
