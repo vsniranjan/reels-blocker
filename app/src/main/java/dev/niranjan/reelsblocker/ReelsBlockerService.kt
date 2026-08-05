@@ -63,6 +63,15 @@ class ReelsBlockerService : AccessibilityService() {
     private var grantedAuthor: String? = null
     private var feedGrantSpent = false
 
+    /** Where a pushed reels viewer was opened from. */
+    private enum class ViewerOrigin { DM, FEED }
+
+    /**
+     * Origin of the pushed viewer on screen, latched for as long as that viewer is
+     * up. See [latchViewerOrigin].
+     */
+    private var viewerOrigin: ViewerOrigin? = null
+
     private val windowManager: WindowManager
         get() = getSystemService(WINDOW_SERVICE) as WindowManager
 
@@ -146,33 +155,54 @@ class ReelsBlockerService : AccessibilityService() {
         if (!inViewer) {
             grantedAuthor = null
             feedGrantSpent = false
+            viewerOrigin = null
         }
 
         val pushedViewer = inViewer && !reelsTabSelected
+        if (pushedViewer) latchViewerOrigin(root)
 
         // Viewer with the reply-to-sender bar is a reel shared in a DM. Allowed.
-        val dmViewer = pushedViewer && findAnyById(root, Detection.DM_VIEWER_MARKER_IDS) != null
+        val dmViewer = pushedViewer && viewerOrigin == ViewerOrigin.DM
 
         // Viewer wearing the Reels/Friends tab strip was opened from the home feed.
         // Allowed for that one reel: swiping on into the endless feed re-blocks,
         // the same boundary the DM reply bar draws for a shared reel.
-        val feedMarker = pushedViewer &&
-            findAnyById(root, Detection.FEED_VIEWER_MARKER_IDS) != null
-        if (feedMarker) trackFeedGrant(root)
-        val feedViewer = feedMarker && !feedGrantSpent
+        val fromFeed = pushedViewer && viewerOrigin == ViewerOrigin.FEED
+        if (fromFeed) trackFeedGrant(root)
+        val feedViewer = fromFeed && !feedGrantSpent
 
         if (reelSurface && prefs.blockingEnabled && !dmViewer && !feedViewer) {
-            // Blocking a viewer that still carries the feed marker can only mean the
-            // grant was spent — every other pushed viewer reports its own id.
+            // Blocking a viewer still known to have come from the feed can only mean
+            // the grant was spent — every other pushed viewer reports its own id.
             val trigger = when {
                 !inViewer -> "reels_tab_selected"
-                feedMarker -> "feed_grant_spent"
+                fromFeed -> "feed_grant_spent"
                 else -> viewer?.viewIdResourceName
             }
             showOverlay(root, trigger)
         } else {
             hideOverlay()
         }
+    }
+
+    /**
+     * Records where a pushed viewer was opened from, once per viewer session.
+     *
+     * The origin markers are chrome, and chrome comes and goes: tap-and-hold to
+     * pause a reel hides every overlay on the video, the Reels/Friends strip and
+     * the DM reply bar included. Re-reading the markers on such a frame would find
+     * nothing, read the viewer as an explore reel and block a reel the user was
+     * already allowed to watch. An absent marker is a gap in the evidence, not a
+     * change of origin — the standing verdict holds until the viewer closes.
+     */
+    private fun latchViewerOrigin(root: AccessibilityNodeInfo) {
+        if (viewerOrigin != null) return
+        viewerOrigin = when {
+            findAnyById(root, Detection.DM_VIEWER_MARKER_IDS) != null -> ViewerOrigin.DM
+            findAnyById(root, Detection.FEED_VIEWER_MARKER_IDS) != null -> ViewerOrigin.FEED
+            else -> null
+        }
+        if (prefs.dumpMode && viewerOrigin != null) Log.d(TAG, "viewer origin: $viewerOrigin")
     }
 
     /**
