@@ -1,6 +1,7 @@
 package dev.niranjan.reelsblocker
 
 import android.accessibilityservice.AccessibilityService
+import android.animation.AnimatorInflater
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -334,6 +335,8 @@ class ReelsBlockerService : AccessibilityService() {
             tag = "exit"
             text = getString(R.string.overlay_exit)
             background = ctx.getDrawable(R.drawable.bg_overlay_button)
+            stateListAnimator =
+                AnimatorInflater.loadStateListAnimator(ctx, R.animator.overlay_button_press)
             setTextColor(resources.getColor(R.color.brand_on_primary, ctx.theme))
             isAllCaps = false
             textSize = 16f
