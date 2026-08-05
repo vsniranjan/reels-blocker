@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A press squeeze for the overlay's exit button. It has to say "got it" on the way
+  down, not on the way up: the click navigates out of the reel immediately and the
+  overlay window is torn down with it, so a release animation is never seen. Small
+  and quick — this is an acknowledgement, not a flourish.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:state_pressed="true">
+        <set>
+            <objectAnimator
+                android:propertyName="scaleX"
+                android:valueTo="0.94"
+                android:valueType="floatType"
+                android:duration="80"
+                android:interpolator="@android:interpolator/fast_out_linear_in" />
+            <objectAnimator
+                android:propertyName="scaleY"
+                android:valueTo="0.94"
+                android:valueType="floatType"
+                android:duration="80"
+                android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </set>
+    </item>
+
+    <item>
+        <set>
+            <objectAnimator
+                android:propertyName="scaleX"
+                android:valueTo="1"
+                android:valueType="floatType"
+                android:duration="140"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+            <objectAnimator
+                android:propertyName="scaleY"
+                android:valueTo="1"
+                android:valueType="floatType"
+                android:duration="140"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </set>
+    </item>
+</selector>
